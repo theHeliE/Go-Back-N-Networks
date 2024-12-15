@@ -17,7 +17,7 @@
 #define __NETWORKSSS_NODE0_H_
 
 #include <omnetpp.h>
-
+#include "MyMessage_m.h"
 using namespace omnetpp;
 using namespace std;
 
@@ -28,6 +28,8 @@ class Node0 : public cSimpleModule
 {
 public:
   string Framing(const string &data);
+  string Deframing(const string &data);
+  bool ErrorDetection(MyMessage_Base *msg);
 
 protected:
   virtual void initialize() override;
