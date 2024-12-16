@@ -14,6 +14,10 @@
 //
 
 #include "node0.h"
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <filesystem> // C++17 or later
 
 Define_Module(Node0);
 using namespace std;
@@ -80,57 +84,147 @@ bool Node0::ErrorDetection(MyMessage_Base *msg)
     // XOR the trailer
     xorval ^= bitset<8>(msg->getM_Trailer());
 
-    // Check if the XOR value is not 0 then no error detected else error detected
+    // Check if the XOR value is not 0 then error detected else no error detected
 
     return xorval != 0;
 }
 
-void Node0::initialize()
+void Node0::ReadFile()
 {
-    // TODO - Generated method body
-    string msg;
-    cout << "Enter a word" << endl;
-    cin >> msg;
-
-    string framedMsg = Framing(msg);
-    cout << "framed message is :" << framedMsg << endl;
-    cout << "deframed message is :" << Deframing(framedMsg) << endl;
-
-    MyMessage_Base *msg_test = new MyMessage_Base();
-    bitset<8> xorval(0);
-    for (int i = 0; i < framedMsg.size(); i++)
+    // Open the file
+    ifstream infile("Textfiles/input0.txt");
+    if (!infile.is_open())
     {
-        bitset<8> x(framedMsg[i]);
-        xorval = xorval ^ x;
+        cerr << "Error opening file: Textfiles/input0.txt" << endl;
+        return;
     }
-    char parity = (char)xorval.to_ulong();
 
-    // Manipulate after framing :
-    //  Access the first character and modify its fourth bit
-    //unsigned char firstChar = framedMsg[0];
-   // firstChar ^= (1 << 3);
-    //framedMsg[0] = firstChar;
-
-    const char *original_message = framedMsg.c_str();
-
-    msg_test->setSeq_Num(0);
-    msg_test->setM_Type(2);
-    msg_test->setACK_Num(0);
-    msg_test->setNACK_Num(0);
-    msg_test->setM_Payload(original_message);
-    msg_test->setM_Trailer(parity);
-
-    if (ErrorDetection(msg_test))
+    // Read the file line by line
+    string line;
+    while (getline(infile, line))
     {
-        cout << "Error Detected" << endl;
+        // Parse the line to extract time and node_id
+        istringstream iss(line);
+
+        // Extract the first 4 characters as a bitset
+        message_error_code = bitset<4>(line.substr(0, 4));
+
+        // Extract the remainder of the line as a message string
+        data = line.substr(5);
+
+        // Store the error code and message in the vectors
+        message_error_codes.push_back(message_error_code);
+        alldata.push_back(data);
+
+        EV << "Code : " << message_error_code << endl;
+        EV << "Message: " << data << endl;
     }
+
+    // Close the file
+    infile.close();
+}
+
+bool Node0 ::coordinator_message_checker(cMessage *msg)
+{
+    // if the message is from the coordinator and the message is sender then this node
+    // is the sender else if the message is receiver then this node is the receiver
+    // else it is not from the coordinator
+    if (strcmp(msg->getName(), "sender") == 0)
+    {
+        nodeType = SENDER;
+        ReadFile(); // Read the input file
+        return true;
+    }
+
+    else if (strcmp(msg->getName(), "receiver") == 0)
+    {
+        nodeType = RECEIVER;
+        return true;
+    }
+
     else
     {
-        cout << "No Error Detected" << endl;
+        return false;
     }
+}
+// circulary increment the sequence number
+int Node0::inc(int seq_nr)
+{
+    return (seq_nr + 1) % (MAX_SEQ + 1);
+}
+
+bitset<8> Node0::trailer_byte(string data)
+{
+    // Get the Payload and create the Variable that stores the XOR value
+    bitset<8> xorval(0);
+
+    // XOR the payload
+    for (int i = 0; i < data.size(); i++)
+    {
+        bitset<8> x(data[i]);
+        xorval = xorval ^ x;
+    }
+
+    return xorval;
+}
+
+void Node0::send_frame(int frame_nr, int frame_expected, vector<string> buffer, bitset<4> error)
+{
+    // Create a new message
+    MyMessage_Base *msg = new MyMessage_Base("DATA", DATA);
+
+    // Set the frame number
+    msg->setSeq_Num(frame_nr);
+
+    // Set the ack expected
+    msg->setACK_Num((frame_expected + MAX_SEQ) % (MAX_SEQ + 1));
+
+    // Set the Nack expected
+    msg->setNACK_Num((frame_expected + MAX_SEQ) % (MAX_SEQ + 1));
+
+    // Set the payload
+    msg->setM_Payload(buffer[frame_nr]);
+
+    // Set the trailer
+    msg->setM_Trailer(trailer_byte(buffer[frame_nr]));
+
+    // set the Type
+    msg->setM_Type(DATA);
+}
+
+void Node0::initialize()
+{
+
+    // Intialization of Needed Parameters
+    next_frame_to_send = 0;
+    frame_expected = 0;
+    nbuffered = 0;
+    MAX_SEQ = getParentModule()->par("WS");
+    time_out = getParentModule()->par("TO");
+    procesing_time = double(getParentModule()->par("PT"));
+    transmission_time = double(getParentModule()->par("TD"));
+    duplication_time = double(getParentModule()->par("DD"));
+    error_time = double(getParentModule()->par("ED"));
+    loss_probability = double(getParentModule()->par("LP"));
+
+    // while I am waiting for the coordinator message , wait
+    // while (nodeType == NEITHER);
+
+    // if (nodeType == SENDER)
+    //{
+    // while (alldata.size() > 0)
+    //{
+    // }
+    //}
 }
 
 void Node0::handleMessage(cMessage *msg)
 {
     // TODO - Generated method body
+    // if it is a coordinator message only then check if it is sender or receiver message
+    // else focus on the protocol
+    if (coordinator_message_checker(msg))
+    {
+        EV << "Coordinator message received" << endl;
+    }
 }

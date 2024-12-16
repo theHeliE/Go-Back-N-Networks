@@ -26,11 +26,12 @@ void Coordinator::initialize()
 {
 
     // Open the file
+    cout << "hello";
     ifstream infile("Textfiles/coordinator.txt");
     if (!infile.is_open())
     {
-        cerr << "Error opening file: Textfiles/coordinator.txt" << endl;
-        return;
+        // cerr << "Error opening file: Textfiles/coordinator.txt" << endl;
+        // return;
     }
 
     // Read the file line by line
@@ -62,21 +63,26 @@ void Coordinator::handleMessage(cMessage *msg)
     // check if the message is the self-message
     if (strcmp(msg->getName(), "selfMsg") == 0)
     {
-        // If node_id == 0, then send a message to node 0 else node 1
-        string sent = "Coordinator sent message to node ";
+        // If node_id == 0, then send sender to node 0
+        // and receiver to node 1 else send sender to
+        // node 1 and receiver to node 0
+        string sender = "sender";
+        string receiver = "receiver";
         if (node_id == 0)
         {
-            sent += "0";
-            cMessage *sent_msg_to_node_0 = new cMessage(sent.c_str());
+            cMessage *sent_msg_to_node_0 = new cMessage("sender");
+            cMessage *sent_msg_to_node_1 = new cMessage("receiver");
             send(sent_msg_to_node_0, "out", 0);
-            EV << "Coordinator sent message to node 0" << endl;
+            send(sent_msg_to_node_1, "out", 1);
+            EV << "Coordinator sent sender to node 0 and receiver to node 1" << endl;
         }
         else
         {
-            sent += "1";
-            cMessage *sent_msg_to_node_1 = new cMessage(sent.c_str());
+            cMessage *sent_msg_to_node_1 = new cMessage("sender");
+            cMessage *sent_msg_to_node_0 = new cMessage("receiver");
             send(sent_msg_to_node_1, "out", 1);
-            EV << "Coordinator sent message to node 1" << endl;
+            send(sent_msg_to_node_0, "out", 0);
+            EV << "Coordinator sent sender to node 1 and receiver to node 0" << endl;
         }
     }
 

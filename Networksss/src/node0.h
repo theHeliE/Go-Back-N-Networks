@@ -18,19 +18,58 @@
 
 #include <omnetpp.h>
 #include "MyMessage_m.h"
+#include <bitset>
 using namespace omnetpp;
 using namespace std;
+
+enum MyMessageTypes
+{
+  DATA = 0,
+  ACK = 1,
+  NACK = 2
+};
+
+enum NodeTypes
+{
+  SENDER = 0,
+  RECEIVER = 1,
+  NEITHER = 2
+};
 
 /**
  * TODO - Generated class
  */
 class Node0 : public cSimpleModule
 {
-public:
-  string Framing(const string &data);
-  string Deframing(const string &data);
-  bool ErrorDetection(MyMessage_Base *msg);
 
+private:
+  NodeTypes nodeType = NEITHER;          // to store the type of node (sender or receiver)
+  vector<string> buffer;                 // to store messages to be sent
+  vector<string> alldata;                // to store all messages from file
+  vector<bitset<4>> message_error_codes; // to store error codes for each message
+  int next_frame_to_send;                // next frame to send
+  int frame_expected;                    // the frame expected to arrive
+  int nbuffered;                         // number of buffered messages
+  int MAX_SEQ;                           // Maximum Sequence Number and Window Size
+  int time_out;                          // time out for the message
+  double procesing_time;                 // processing time for the message
+  double transmission_time;              // transmission time for the message
+  double duplication_time;               // duplication time for the message
+  double error_time;                     // error time for the message
+  double loss_probability;               // loss probability for the ack/nack message
+  bitset<4> message_error_code;          // to store error code for each message
+  string data;                           // to read each message from file
+
+public:
+  string Framing(const string &data);                                       // function to frame the data
+  string Deframing(const string &data);                                     // function to deframe the data
+  bool ErrorDetection(MyMessage_Base *msg);                                 // function to detect errors in the message
+  void ReadFile();                                                          // function to read the input file
+  bool coordinator_message_checker(cMessage *msg);                          // to check if the message is from the coordinator or not
+  bool inBetween(int seq_nra, int seq_nrb, int seq_nrc);                    // to check if the frame is in between the sender and receiver window
+  void send_frame(int frame_nr, int frame_expected, vector<string> buffer); // to send the frame
+  int inc(int seq_nr);                                                      // to circularly increment the sequence number
+  bitset<8> trailer_byte(string data);                                      // to generate the trailer byte
 protected:
   virtual void initialize() override;
   virtual void handleMessage(cMessage *msg) override;

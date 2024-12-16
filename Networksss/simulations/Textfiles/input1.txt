@@ -1,0 +1,7 @@
+1010 A river$, often$  
+0000 flowing$/across landscapes$, is a natural watercourse$.  
+0100 Rivers provide water$ for agriculture$, drinking$, and$/electricity generation$.  
+0000 Many civilizations originated$ along$/riverbanks for resources$/and trade$.  
+0001 The Nile$/River is the longest$/river in the world, flowing$/through Africa$.  
+0100 Rivers support$/ecosystems by nurturing plants$ and$/animals$.  
+0000 $$They eventually$/merge$/into seas$/or oceans$.  

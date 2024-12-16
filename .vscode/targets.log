@@ -7,7 +7,7 @@ make.exe all -C d:\omnetTests\Go-Back-N-Networks\make --print-data-base --no-bui
 
 # This program built for i386-pc-mingw32
 
-# Make data base, printed on Sun Dec 15 21:00:04 2024
+# Make data base, printed on Mon Dec 16 00:26:48 2024
 
 # Variables
 
@@ -68,7 +68,7 @@ ELECTRON_RUN_AS_NODE = 1
 # environment
 INTELLIJ IDEA = D:\Program Files\JetBrains\IntelliJ IDEA 2023.3.5\bin;
 # environment
-CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_18192_FWSXBKLBLTVAWHZF
+CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_12648_TZPEBKZXCRXXOFRM
 # environment
 COMPUTERNAME = DESKTOP-6B6KJDA
 # environment
@@ -154,7 +154,7 @@ LANG = C
 # environment
 PROCESSOR_LEVEL = 6
 # environment
-VSCODE_PID = 18192
+VSCODE_PID = 12648
 # environment
 USERDOMAIN_ROAMINGPROFILE = DESKTOP-6B6KJDA
 # variable set hash-table stats:
@@ -195,7 +195,7 @@ all:
 # strcache size: total = 0 / max = 0 / min = 4096 / avg = 0
 # strcache free: total = 0 / max = 0 / min = 4096 / avg = 0
 
-# Finished Make data base on Sun Dec 15 21:00:04 2024
+# Finished Make data base on Mon Dec 16 00:26:48 2024
 
  
 make.exe: *** d:\omnetTests\Go-Back-N-Networks\make: No such file or directory.  Stop.
