@@ -168,7 +168,7 @@ bitset<8> Node0::trailer_byte(string data)
     return xorval;
 }
 
-void Node0::send_frame(int frame_nr, int frame_expected, vector<string> buffer, bitset<4> error)
+void Node0::send_frame(int frame_nr, int frame_expected, vector<string> buffer)
 {
     // Create a new message
     MyMessage_Base *msg = new MyMessage_Base("DATA", DATA);
@@ -183,7 +183,7 @@ void Node0::send_frame(int frame_nr, int frame_expected, vector<string> buffer, 
     msg->setNACK_Num((frame_expected + MAX_SEQ) % (MAX_SEQ + 1));
 
     // Set the payload
-    msg->setM_Payload(buffer[frame_nr]);
+    msg->setM_Payload(buffer[frame_nr].c_str());
 
     // Set the trailer
     msg->setM_Trailer(trailer_byte(buffer[frame_nr]));
@@ -208,7 +208,8 @@ void Node0::initialize()
     loss_probability = double(getParentModule()->par("LP"));
 
     // while I am waiting for the coordinator message , wait
-    // while (nodeType == NEITHER);
+     // while (nodeType == NEITHER);
+
 
     // if (nodeType == SENDER)
     //{
