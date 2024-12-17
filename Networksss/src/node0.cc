@@ -153,6 +153,20 @@ int Node0::inc(int seq_nr)
     return (seq_nr + 1) % (MAX_SEQ + 1);
 }
 
+// check if the frame is in between the window
+
+bool Node0::inBetween(int seq_nra, int seq_nrb, int seq_nrc)
+{
+    if ((seq_nra <= seq_nrb && seq_nrb < seq_nrc) || (seq_nra <= seq_nrb && seq_nra > seq_nrc) || (seq_nra > seq_nrc && seq_nrb < seq_nrc))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 bitset<8> Node0::trailer_byte(string data)
 {
     // Get the Payload and create the Variable that stores the XOR value
@@ -170,6 +184,7 @@ bitset<8> Node0::trailer_byte(string data)
 
 void Node0::send_frame(int frame_nr, int frame_expected, vector<string> buffer)
 {
+    EV << buffer[frame_nr] << endl;
     // Create a new message
     MyMessage_Base *msg = new MyMessage_Base("DATA", DATA);
 
@@ -190,6 +205,39 @@ void Node0::send_frame(int frame_nr, int frame_expected, vector<string> buffer)
 
     // set the Type
     msg->setM_Type(DATA);
+
+    // Send the message
+    send(msg, "out");
+}
+
+void Node0::send_ack(int frame_nr, int frame_expected, bool error)
+{
+    MyMessage_Base *msg;
+    if (error)
+    {
+        msg = new MyMessage_Base("NACK", NACK);
+        msg->setM_Type(NACK);
+    }
+    else
+    {
+        msg = new MyMessage_Base("ACK", ACK);
+        msg->setM_Type(ACK);
+    }
+    // Set the frame number
+    msg->setSeq_Num(frame_nr);
+
+    // Set the ack expected
+    msg->setACK_Num((frame_expected + MAX_SEQ) % (MAX_SEQ + 1));
+
+    // Set the Nack expected
+    msg->setNACK_Num((frame_expected + MAX_SEQ) % (MAX_SEQ + 1));
+
+    // Set the payload
+    string dummy = "dummy";
+    msg->setM_Payload(dummy.c_str());
+
+    // Set the trailer
+    msg->setM_Trailer(trailer_byte(dummy));
 }
 
 void Node0::initialize()
@@ -208,8 +256,7 @@ void Node0::initialize()
     loss_probability = double(getParentModule()->par("LP"));
 
     // while I am waiting for the coordinator message , wait
-     // while (nodeType == NEITHER);
-
+    // while (nodeType == NEITHER);
 
     // if (nodeType == SENDER)
     //{
@@ -227,5 +274,37 @@ void Node0::handleMessage(cMessage *msg)
     if (coordinator_message_checker(msg))
     {
         EV << "Coordinator message received" << endl;
+    }
+    if (nodeType == RECEIVER)
+    {
+        MyMessage_Base *myMsg = dynamic_cast<MyMessage_Base *>(msg);
+        // if the message is a data message
+        if (myMsg->getM_Type() == DATA)
+        {
+            // send the ack
+            bool error = ErrorDetection(myMsg);
+            send_ack(myMsg->getSeq_Num(), frame_expected, error);
+        }
+    }
+    else if (nodeType == SENDER)
+    {
+        MyMessage_Base *myMsg = dynamic_cast<MyMessage_Base *>(msg);
+        // if the message is an ack message
+        if (myMsg->getM_Type() == ACK)
+        {
+            // if the message is in between the sender and receiver window
+            if (inBetween(frame_expected, myMsg->getSeq_Num(), next_frame_to_send))
+            {
+                frame_expected = inc(frame_expected);
+                nbuffered--;
+
+                if (!alldata.empty())
+                {
+                    send_frame(next_frame_to_send, frame_expected, alldata);
+                    next_frame_to_send = inc(next_frame_to_send);
+                    nbuffered++;
+                }
+            }
+        }
     }
 }

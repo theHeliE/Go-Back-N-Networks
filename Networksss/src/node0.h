@@ -68,6 +68,7 @@ public:
   bool coordinator_message_checker(cMessage *msg);                          // to check if the message is from the coordinator or not
   bool inBetween(int seq_nra, int seq_nrb, int seq_nrc);                    // to check if the frame is in between the sender and receiver window
   void send_frame(int frame_nr, int frame_expected, vector<string> buffer); // to send the frame
+  void send_ack(int frame_nr, int frame_expected, bool error);              // to send the ack
   int inc(int seq_nr);                                                      // to circularly increment the sequence number
   bitset<8> trailer_byte(string data);                                      // to generate the trailer byte
 protected:
