@@ -71,7 +71,7 @@ bool Node0::ErrorDetection(MyMessage_Base *msg)
 {
 
     // Get the Payload and create the Variable that stores the XOR value
-    string s = std::string(msg->getM_Payload());
+    string s = string(msg->getM_Payload());
     bitset<8> xorval(0);
 
     // XOR the payload
@@ -224,15 +224,18 @@ void Node0::processing_frame(int frame_nr, int next_frame_to_send, int frame_exp
 void Node0::send_ack(int frame_nr, int frame_expected, bool error)
 {
     MyMessage_Base *msg;
+    string dummy = "";
     if (error)
     {
         msg = new MyMessage_Base("NACK", NACK);
         msg->setM_Type(NACK);
+        dummy = "NACK";
     }
     else
     {
         msg = new MyMessage_Base("ACK", ACK);
         msg->setM_Type(ACK);
+        dummy = "ACK";
     }
     // Set the frame number
     msg->setSeq_Num(frame_nr);
@@ -244,7 +247,6 @@ void Node0::send_ack(int frame_nr, int frame_expected, bool error)
     msg->setNACK_Num((frame_expected + MAX_SEQ) % (MAX_SEQ + 1));
 
     // Set the payload
-    string dummy = "dummy";
     msg->setM_Payload(dummy.c_str());
 
     // Set the trailer
@@ -313,20 +315,25 @@ void Node0::handleMessage(cMessage *msg)
         }
         else if (nodeType == SENDER)
         {
+
             // if the message is ack or nack then check if it is ack
-            MyMessage_Base *myMsg = check_and_cast<MyMessage_Base *>(msg);
-            if (myMsg->getM_Type() == ACK)
+            EV << "msg name: " << msg->getName() << endl;
+            MyMessage_Base *myMsg = dynamic_cast<MyMessage_Base *>(msg);
+            if (myMsg)
             {
-                EV<<"Ack " << myMsg->getACK_Num() <<"received";
-                // if it is in between ack_expected and next_frame_to_send
-                // we inc the Window slide to it
-                while (inBetween(ack_expected, myMsg->getACK_Num(), next_frame_to_send))
+                if (myMsg->getM_Type() == ACK)
                 {
-                    nbuffered--;
-                    // advance the Lower side of the window
-                    inc(ack_expected);
+                    EV << "Ack " << myMsg->getACK_Num() << "received";
+                    // if it is in between ack_expected and next_frame_to_send
+                    // we inc the Window slide to it
+                    while (inBetween(ack_expected, myMsg->getACK_Num(), next_frame_to_send))
+                    {
+                        nbuffered--;
+                        // advance the Lower side of the window
+                        inc(ack_expected);
+                    }
                 }
-         }
+            }
             // after processing time , send the message
             if (strcmp(msg->getName(), "selfMsg") == 0)
             {

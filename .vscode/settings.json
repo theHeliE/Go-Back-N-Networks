@@ -60,6 +60,8 @@
   "files.associations": {
     "string": "cpp",
     "array": "cpp",
-    "string_view": "cpp"
+    "string_view": "cpp",
+    "new": "cpp",
+    "ostream": "cpp"
   }
 }

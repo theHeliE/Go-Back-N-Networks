@@ -31,7 +31,7 @@ bool Node1::coordinator_message_checker(cMessage *msg)
     if (strcmp(msg->getName(), "sender") == 0)
     {
         nodeType = SENDER;
-        //ReadFile(); // Read the input file
+        // ReadFile(); // Read the input file
         EV << "Node1 set as SENDER with " << alldata.size() << " messages." << endl;
 
         return true;
@@ -74,7 +74,7 @@ bool Node1::ErrorDetection(MyMessage_Base *msg)
 
 MyMessage_Base *Node1::process_and_check_ack(int frame_expected, bool error)
 {
-    MyMessage_Base *msg;
+    MyMessage_Base *msg = new MyMessage_Base("");
     if (error)
     {
         msg->setM_Type(NACK);
@@ -145,20 +145,41 @@ void Node1::handleMessage(cMessage *msg)
         }
         else if (nodeType == RECEIVER)
         {
+
+            EV << "msg name: " << msg->getName() << endl;
             // if the ack or nack is processed
             if (strcmp(msg->getName(), "selfMsg") == 0)
             {
-                inc(frame_expected);
-                sendDelayed(processed_ack_or_nack, transmission_time, "out");
+                if (processed_ack_or_nack != nullptr)
+                {
+                    EV << "Sending processed ack or nack" << endl;
+                    inc(frame_expected);
+                    sendDelayed(processed_ack_or_nack, transmission_time, "out");
+                    processed_ack_or_nack = nullptr; // Clear after sending
+                }
+                else
+                {
+                    EV << "Error: processed_ack_or_nack is nullptr" << endl;
+                }
+                delete msg;
+                return;
             }
             // check if the sent message is correct
-            MyMessage_Base *myMsg = check_and_cast<MyMessage_Base *>(msg);
+            MyMessage_Base *myMsg = dynamic_cast<MyMessage_Base *>(msg);
+            EV << "msg name: " << myMsg->getM_Payload() << endl;
+            if (!myMsg)
+            {
+                EV << "Received message is not of type MyMessage_Base" << endl;
+                delete msg; // Clean up the message if it's not the expected type
+                return;
+            }
             // if the message is a data message
             if (myMsg->getM_Type() == DATA)
             {
                 // send the ack
                 bool error = ErrorDetection(myMsg);
                 processed_ack_or_nack = process_and_check_ack(frame_expected, error);
+                EV << "Processing Ack for frame " << frame_expected << endl;
             }
         }
     }
