@@ -135,16 +135,6 @@ bool Node0 ::coordinator_message_checker(cMessage *msg)
         ReadFile(); // Read the input file
         EV << "Node0 set as SENDER with " << alldata.size() << " messages." << endl;
 
-        frame_expected = inc(frame_expected);
-
-        if (nbuffered < MAX_SEQ)
-        {
-            // Send the first frame
-            send_frame(next_frame_to_send, frame_expected, alldata);
-            nbuffered++;
-            next_frame_to_send = inc(next_frame_to_send);
-        }
-
         return true;
     }
 
@@ -194,15 +184,13 @@ bitset<8> Node0::trailer_byte(string data)
     return xorval;
 }
 
-void Node0::send_frame(int frame_nr, int frame_expected, vector<string> &buffer)
+void Node0::message_construction(int frame_nr, int next_frame_to_send, int frame_expected, MyMessage_Base **&buffer, vector<string> &alldata)
 {
-
-    EV << buffer[frame_nr] << endl;
     // Create a new message
     MyMessage_Base *msg = new MyMessage_Base("");
 
     // Set the frame number
-    msg->setSeq_Num(frame_nr);
+    msg->setSeq_Num(next_frame_to_send);
 
     // Set the ack expected
     msg->setACK_Num((frame_expected + MAX_SEQ) % (MAX_SEQ + 1));
@@ -211,18 +199,26 @@ void Node0::send_frame(int frame_nr, int frame_expected, vector<string> &buffer)
     msg->setNACK_Num((frame_expected + MAX_SEQ) % (MAX_SEQ + 1));
 
     // Set the payload
-    string framedPayload = Framing(buffer[frame_nr]);
+    string framedPayload = Framing(alldata[frame_nr]);
     msg->setM_Payload(framedPayload.c_str());
 
     // Set the trailer
-    msg->setM_Trailer(trailer_byte(buffer[frame_nr]));
+    msg->setM_Trailer(trailer_byte(alldata[frame_nr]));
 
     // set the Type
     msg->setM_Type(DATA);
 
-    // Send the message
-    sendDelayed(msg, transmission_time, "out");
-    EV << "Sending frame " << msg->getSeq_Num() << "Payload: " << msg->getM_Payload() << " " << "Trailer: " << msg->getM_Trailer().to_ulong() << endl;
+    buffer[next_frame_to_send] = msg;
+}
+
+void Node0::processing_frame(int frame_nr, int next_frame_to_send, int frame_expected, double processing_time, MyMessage_Base **&buffer, vector<string> &alldata)
+{
+    // construct message and add it to buffer
+    message_construction(frame_nr, next_frame_to_send, frame_expected, buffer, alldata);
+
+    // Schedule the message
+    scheduleAt(simTime() + processing_time, new cMessage("selfMsg"));
+    EV << "processing frame " << buffer[next_frame_to_send]->getSeq_Num() << "Payload: " << buffer[next_frame_to_send]->getM_Payload() << " " << "Trailer: " << buffer[next_frame_to_send]->getM_Trailer().to_ulong() << endl;
 }
 
 void Node0::send_ack(int frame_nr, int frame_expected, bool error)
@@ -262,18 +258,20 @@ void Node0::initialize()
     next_frame_to_send = 0;
     frame_expected = 0;
     nbuffered = 0;
+    ack_expected = 0;
     MAX_SEQ = getParentModule()->par("WS");
     time_out = getParentModule()->par("TO");
-    procesing_time = double(getParentModule()->par("PT"));
+    processing_time = double(getParentModule()->par("PT"));
     transmission_time = double(getParentModule()->par("TD"));
     duplication_time = double(getParentModule()->par("DD"));
     error_time = double(getParentModule()->par("ED"));
     loss_probability = double(getParentModule()->par("LP"));
 
+    buffer = new MyMessage_Base *[MAX_SEQ + 1];
     EV << "Node initialized with parameters: "
        << "MAX_SEQ=" << MAX_SEQ << ", "
        << "time_out=" << time_out << ", "
-       << "procesing_time=" << procesing_time << ", "
+       << "procesing_time=" << processing_time << ", "
        << "transmission_time=" << transmission_time << ", "
        << "duplication_time=" << duplication_time << ", "
        << "error_time=" << error_time << ", "
@@ -297,7 +295,8 @@ void Node0::handleMessage(cMessage *msg)
     // else focus on the protocol
     if (coordinator_message_checker(msg))
     {
-        EV << "Coordinator message received" << endl;
+        EV << "Coordinator message received and started processing the First frame" << endl;
+        processing_frame(current_frame, next_frame_to_send, frame_expected, processing_time, buffer, alldata);
     }
     else
     {
@@ -314,25 +313,32 @@ void Node0::handleMessage(cMessage *msg)
         }
         else if (nodeType == SENDER)
         {
-            MyMessage_Base *myMsg;
-            myMsg = check_and_cast<MyMessage_Base *>(msg);
-            // if the message is an ack message
-            if (strcmp(msg->getName(), "ACK") == 0)
+            // if the message is ack or nack then check if it is ack
+            MyMessage_Base *myMsg = check_and_cast<MyMessage_Base *>(msg);
+            if (myMsg->getM_Type() == ACK)
             {
-                // if the message is in between the sender and receiver window
-                if (inBetween(frame_expected, myMsg->getSeq_Num(), next_frame_to_send))
+                EV<<"Ack " << myMsg->getACK_Num() <<"received";
+                // if it is in between ack_expected and next_frame_to_send
+                // we inc the Window slide to it
+                while (inBetween(ack_expected, myMsg->getACK_Num(), next_frame_to_send))
                 {
-                    frame_expected = inc(frame_expected);
                     nbuffered--;
-
-                    if (!alldata.empty())
-                    {
-                        send_frame(next_frame_to_send, frame_expected, alldata);
-                        next_frame_to_send = inc(next_frame_to_send);
-                        nbuffered++;
-                    }
+                    // advance the Lower side of the window
+                    inc(ack_expected);
                 }
+         }
+            // after processing time , send the message
+            if (strcmp(msg->getName(), "selfMsg") == 0)
+            {
+                // if it is a self message then send the data message
+                sendDelayed(buffer[next_frame_to_send], transmission_time, "out");
+                nbuffered++;
+                next_frame_to_send = inc(next_frame_to_send);
+                current_frame++;
             }
+            // if nbuffered less than max_seq process another frame
+            if (nbuffered < MAX_SEQ)
+                processing_frame(current_frame, next_frame_to_send, frame_expected, processing_time, buffer, alldata);
         }
     }
 }

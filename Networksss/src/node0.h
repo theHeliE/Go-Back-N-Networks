@@ -44,15 +44,17 @@ class Node0 : public cSimpleModule
 
 private:
   NodeTypes nodeType = NEITHER;          // to store the type of node (sender or receiver)
-  vector<string> buffer;                 // to store messages to be sent
+  MyMessage_Base **buffer;               // to store messages to be sent
   vector<string> alldata;                // to store all messages from file
   vector<bitset<4>> message_error_codes; // to store error codes for each message
   int next_frame_to_send;                // next frame to send
   int frame_expected;                    // the frame expected to arrive
+  int ack_expected;                      // ack expected to arrive (The Lower Bound of the Window)
   int nbuffered;                         // number of buffered messages
   int MAX_SEQ;                           // Maximum Sequence Number and Window Size
   int time_out;                          // time out for the message
-  double procesing_time;                 // processing time for the message
+  int current_frame = 0;                 // current frame taken from alldata
+  double processing_time;                // processing time for the message
   double transmission_time;              // transmission time for the message
   double duplication_time;               // duplication time for the message
   double error_time;                     // error time for the message
@@ -61,16 +63,18 @@ private:
   string data;                           // to read each message from file
 
 public:
-  string Framing(const string &data);                                        // function to frame the data
-  string Deframing(const string &data);                                      // function to deframe the data
-  bool ErrorDetection(MyMessage_Base *msg);                                  // function to detect errors in the message
-  void ReadFile();                                                           // function to read the input file
-  bool coordinator_message_checker(cMessage *msg);                           // to check if the message is from the coordinator or not
-  bool inBetween(int seq_nra, int seq_nrb, int seq_nrc);                     // to check if the frame is in between the sender and receiver window
-  void send_frame(int frame_nr, int frame_expected, vector<string> &buffer); // to send the frame
-  void send_ack(int frame_nr, int frame_expected, bool error);               // to send the ack
-  int inc(int seq_nr);                                                       // to circularly increment the sequence number
-  bitset<8> trailer_byte(string data);                                       // to generate the trailer byte
+  string Framing(const string &data);                                                                                                                        // function to frame the data
+  string Deframing(const string &data);                                                                                                                      // function to deframe the data
+  bool ErrorDetection(MyMessage_Base *msg);                                                                                                                  // function to detect errors in the message
+  void ReadFile();                                                                                                                                           // function to read the input file
+  bool coordinator_message_checker(cMessage *msg);                                                                                                           // to check if the message is from the coordinator or not
+  bool inBetween(int seq_nra, int seq_nrb, int seq_nrc);                                                                                                     // to check if the frame is in between the sender and receiver window
+  void processing_frame(int frame_nr, int next_frame_to_send, int frame_expected, double processing_time, MyMessage_Base **&buffer, vector<string> &alldata); // to send the frame
+  void send_ack(int frame_nr, int frame_expected, bool error);                                                                                               // to send the ack
+  int inc(int seq_nr);                                                                                                                                       // to circularly increment the sequence number
+  bitset<8> trailer_byte(string data);
+  void message_construction(int frame_nr, int next_frame_to_send, int frame_expected, MyMessage_Base **&buffer, vector<string> &alldata);
+
 protected:
   virtual void initialize() override;
   virtual void handleMessage(cMessage *msg) override;

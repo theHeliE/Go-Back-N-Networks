@@ -17,20 +17,149 @@
 
 Define_Module(Node1);
 
+int Node1::inc(int seq_nr)
+{
+
+    return (seq_nr + 1) % (MAX_SEQ + 1);
+}
+
+bool Node1::coordinator_message_checker(cMessage *msg)
+{
+    // if the message is from the coordinator and the message is sender then this node
+    // is the sender else if the message is receiver then this node is the receiver
+    // else it is not from the coordinator
+    if (strcmp(msg->getName(), "sender") == 0)
+    {
+        nodeType = SENDER;
+        //ReadFile(); // Read the input file
+        EV << "Node1 set as SENDER with " << alldata.size() << " messages." << endl;
+
+        return true;
+    }
+
+    else if (strcmp(msg->getName(), "receiver") == 0)
+    {
+        nodeType = RECEIVER;
+        EV << "receiver" << endl;
+        return true;
+    }
+
+    else
+    {
+        return false;
+    }
+}
+
+bool Node1::ErrorDetection(MyMessage_Base *msg)
+{
+
+    // Get the Payload and create the Variable that stores the XOR value
+    string s = std::string(msg->getM_Payload());
+    bitset<8> xorval(0);
+
+    // XOR the payload
+    for (int i = 0; i < s.size(); i++)
+    {
+        bitset<8> x(s[i]);
+        xorval = xorval ^ x;
+    }
+
+    // XOR the trailer
+    xorval ^= bitset<8>(msg->getM_Trailer());
+
+    // Check if the XOR value is not 0 then error detected else no error detected
+
+    return xorval != 0;
+}
+
+MyMessage_Base *Node1::process_and_check_ack(int frame_expected, bool error)
+{
+    MyMessage_Base *msg;
+    if (error)
+    {
+        msg->setM_Type(NACK);
+    }
+    else
+    {
+        msg->setM_Type(ACK);
+    }
+    // Set the frame number
+    msg->setSeq_Num(frame_expected);
+
+    // Set the ack expected
+    msg->setACK_Num((frame_expected + MAX_SEQ) % (MAX_SEQ + 1));
+
+    // Set the Nack expected
+    msg->setNACK_Num((frame_expected + MAX_SEQ) % (MAX_SEQ + 1));
+
+    // Set the payload
+    string dummy = "dummy";
+    msg->setM_Payload(dummy.c_str());
+
+    // Set the trailer
+    msg->setM_Trailer(trailer_byte(dummy));
+
+    scheduleAt(simTime() + processing_time, new cMessage("selfMsg"));
+    return msg;
+}
+
+bitset<8> Node1::trailer_byte(string data)
+{
+    // Get the Payload and create the Variable that stores the XOR value
+    bitset<8> xorval(0);
+
+    // XOR the payload
+    for (int i = 0; i < data.size(); i++)
+    {
+        bitset<8> x(data[i]);
+        xorval = xorval ^ x;
+    }
+
+    return xorval;
+}
 void Node1::initialize()
 {
-    // TODO - Generated method body
+    // Intialization of Needed Parameters
+    next_frame_to_send = 0;
+    frame_expected = 0;
+    nbuffered = 0;
+    ack_expected = 0;
+    MAX_SEQ = getParentModule()->par("WS");
+    time_out = getParentModule()->par("TO");
+    processing_time = double(getParentModule()->par("PT"));
+    transmission_time = double(getParentModule()->par("TD"));
+    duplication_time = double(getParentModule()->par("DD"));
+    error_time = double(getParentModule()->par("ED"));
+    loss_probability = double(getParentModule()->par("LP"));
+
+    buffer = new MyMessage_Base *[MAX_SEQ + 1];
 }
 
 void Node1::handleMessage(cMessage *msg)
 {
-    // TODO - Generated method body
-    if (strcmp(msg->getName(), "sender") == 0)
+    if (!coordinator_message_checker(msg))
     {
-        EV << "Node 1 is the sender" << endl;
-    }
-    else if (strcmp(msg->getName(), "receiver") == 0)
-    {
-        EV << "Node 1 is the receiver" << endl;
+
+        if (nodeType == SENDER)
+        {
+        }
+        else if (nodeType == RECEIVER)
+        {
+            // if the ack or nack is processed
+            if (strcmp(msg->getName(), "selfMsg") == 0)
+            {
+                inc(frame_expected);
+                sendDelayed(processed_ack_or_nack, transmission_time, "out");
+            }
+            // check if the sent message is correct
+            MyMessage_Base *myMsg = check_and_cast<MyMessage_Base *>(msg);
+            // if the message is a data message
+            if (myMsg->getM_Type() == DATA)
+            {
+                // send the ack
+                bool error = ErrorDetection(myMsg);
+                processed_ack_or_nack = process_and_check_ack(frame_expected, error);
+            }
+        }
     }
 }
