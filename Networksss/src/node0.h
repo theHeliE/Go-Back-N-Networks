@@ -61,16 +61,16 @@ private:
   string data;                           // to read each message from file
 
 public:
-  string Framing(const string &data);                                       // function to frame the data
-  string Deframing(const string &data);                                     // function to deframe the data
-  bool ErrorDetection(MyMessage_Base *msg);                                 // function to detect errors in the message
-  void ReadFile();                                                          // function to read the input file
-  bool coordinator_message_checker(cMessage *msg);                          // to check if the message is from the coordinator or not
-  bool inBetween(int seq_nra, int seq_nrb, int seq_nrc);                    // to check if the frame is in between the sender and receiver window
-  void send_frame(int frame_nr, int frame_expected, vector<string> buffer); // to send the frame
-  void send_ack(int frame_nr, int frame_expected, bool error);              // to send the ack
-  int inc(int seq_nr);                                                      // to circularly increment the sequence number
-  bitset<8> trailer_byte(string data);                                      // to generate the trailer byte
+  string Framing(const string &data);                                        // function to frame the data
+  string Deframing(const string &data);                                      // function to deframe the data
+  bool ErrorDetection(MyMessage_Base *msg);                                  // function to detect errors in the message
+  void ReadFile();                                                           // function to read the input file
+  bool coordinator_message_checker(cMessage *msg);                           // to check if the message is from the coordinator or not
+  bool inBetween(int seq_nra, int seq_nrb, int seq_nrc);                     // to check if the frame is in between the sender and receiver window
+  void send_frame(int frame_nr, int frame_expected, vector<string> &buffer); // to send the frame
+  void send_ack(int frame_nr, int frame_expected, bool error);               // to send the ack
+  int inc(int seq_nr);                                                       // to circularly increment the sequence number
+  bitset<8> trailer_byte(string data);                                       // to generate the trailer byte
 protected:
   virtual void initialize() override;
   virtual void handleMessage(cMessage *msg) override;

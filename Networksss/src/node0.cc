@@ -116,8 +116,8 @@ void Node0::ReadFile()
         message_error_codes.push_back(message_error_code);
         alldata.push_back(data);
 
-        EV << "Code : " << message_error_code << endl;
-        EV << "Message: " << data << endl;
+        // EV << "Code : " << message_error_code << endl;
+        // EV << "Message: " << data << endl;
     }
 
     // Close the file
@@ -133,6 +133,18 @@ bool Node0 ::coordinator_message_checker(cMessage *msg)
     {
         nodeType = SENDER;
         ReadFile(); // Read the input file
+        EV << "Node0 set as SENDER with " << alldata.size() << " messages." << endl;
+
+        frame_expected = inc(frame_expected);
+
+        if (nbuffered < MAX_SEQ)
+        {
+            // Send the first frame
+            send_frame(next_frame_to_send, frame_expected, alldata);
+            nbuffered++;
+            next_frame_to_send = inc(next_frame_to_send);
+        }
+
         return true;
     }
 
@@ -182,11 +194,12 @@ bitset<8> Node0::trailer_byte(string data)
     return xorval;
 }
 
-void Node0::send_frame(int frame_nr, int frame_expected, vector<string> buffer)
+void Node0::send_frame(int frame_nr, int frame_expected, vector<string> &buffer)
 {
+
     EV << buffer[frame_nr] << endl;
     // Create a new message
-    MyMessage_Base *msg = new MyMessage_Base("DATA", DATA);
+    MyMessage_Base *msg = new MyMessage_Base("");
 
     // Set the frame number
     msg->setSeq_Num(frame_nr);
@@ -198,7 +211,8 @@ void Node0::send_frame(int frame_nr, int frame_expected, vector<string> buffer)
     msg->setNACK_Num((frame_expected + MAX_SEQ) % (MAX_SEQ + 1));
 
     // Set the payload
-    msg->setM_Payload(buffer[frame_nr].c_str());
+    string framedPayload = Framing(buffer[frame_nr]);
+    msg->setM_Payload(framedPayload.c_str());
 
     // Set the trailer
     msg->setM_Trailer(trailer_byte(buffer[frame_nr]));
@@ -207,7 +221,8 @@ void Node0::send_frame(int frame_nr, int frame_expected, vector<string> buffer)
     msg->setM_Type(DATA);
 
     // Send the message
-    send(msg, "out");
+    sendDelayed(msg, transmission_time, "out");
+    EV << "Sending frame " << msg->getSeq_Num() << "Payload: " << msg->getM_Payload() << " " << "Trailer: " << msg->getM_Trailer().to_ulong() << endl;
 }
 
 void Node0::send_ack(int frame_nr, int frame_expected, bool error)
@@ -255,6 +270,15 @@ void Node0::initialize()
     error_time = double(getParentModule()->par("ED"));
     loss_probability = double(getParentModule()->par("LP"));
 
+    EV << "Node initialized with parameters: "
+       << "MAX_SEQ=" << MAX_SEQ << ", "
+       << "time_out=" << time_out << ", "
+       << "procesing_time=" << procesing_time << ", "
+       << "transmission_time=" << transmission_time << ", "
+       << "duplication_time=" << duplication_time << ", "
+       << "error_time=" << error_time << ", "
+       << "loss_probability=" << loss_probability << endl;
+
     // while I am waiting for the coordinator message , wait
     // while (nodeType == NEITHER);
 
@@ -275,34 +299,38 @@ void Node0::handleMessage(cMessage *msg)
     {
         EV << "Coordinator message received" << endl;
     }
-    if (nodeType == RECEIVER)
+    else
     {
-        MyMessage_Base *myMsg = dynamic_cast<MyMessage_Base *>(msg);
-        // if the message is a data message
-        if (myMsg->getM_Type() == DATA)
+        if (nodeType == RECEIVER)
         {
-            // send the ack
-            bool error = ErrorDetection(myMsg);
-            send_ack(myMsg->getSeq_Num(), frame_expected, error);
-        }
-    }
-    else if (nodeType == SENDER)
-    {
-        MyMessage_Base *myMsg = dynamic_cast<MyMessage_Base *>(msg);
-        // if the message is an ack message
-        if (myMsg->getM_Type() == ACK)
-        {
-            // if the message is in between the sender and receiver window
-            if (inBetween(frame_expected, myMsg->getSeq_Num(), next_frame_to_send))
+            MyMessage_Base *myMsg = check_and_cast<MyMessage_Base *>(msg);
+            // if the message is a data message
+            if (myMsg->getM_Type() == DATA)
             {
-                frame_expected = inc(frame_expected);
-                nbuffered--;
-
-                if (!alldata.empty())
+                // send the ack
+                bool error = ErrorDetection(myMsg);
+                send_ack(myMsg->getSeq_Num(), frame_expected, error);
+            }
+        }
+        else if (nodeType == SENDER)
+        {
+            MyMessage_Base *myMsg;
+            myMsg = check_and_cast<MyMessage_Base *>(msg);
+            // if the message is an ack message
+            if (strcmp(msg->getName(), "ACK") == 0)
+            {
+                // if the message is in between the sender and receiver window
+                if (inBetween(frame_expected, myMsg->getSeq_Num(), next_frame_to_send))
                 {
-                    send_frame(next_frame_to_send, frame_expected, alldata);
-                    next_frame_to_send = inc(next_frame_to_send);
-                    nbuffered++;
+                    frame_expected = inc(frame_expected);
+                    nbuffered--;
+
+                    if (!alldata.empty())
+                    {
+                        send_frame(next_frame_to_send, frame_expected, alldata);
+                        next_frame_to_send = inc(next_frame_to_send);
+                        nbuffered++;
+                    }
                 }
             }
         }
