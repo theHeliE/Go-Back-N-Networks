@@ -62,6 +62,13 @@
     "array": "cpp",
     "string_view": "cpp",
     "new": "cpp",
-    "ostream": "cpp"
+    "ostream": "cpp",
+    "*.tcc": "cpp",
+    "memory_resource": "cpp",
+    "memory": "cpp",
+    "fstream": "cpp",
+    "istream": "cpp",
+    "sstream": "cpp",
+    "streambuf": "cpp"
   }
 }

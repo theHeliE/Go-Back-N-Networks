@@ -99,7 +99,7 @@ MyMessage_Base *Node1::process_and_check_ack(int frame_expected, bool error)
     // Set the trailer
     msg->setM_Trailer(trailer_byte(dummy));
 
-    scheduleAt(simTime() + processing_time, new cMessage("selfMsg"));
+    scheduleAt(simTime() + processing_time, new MyMessage_Base("selfMsg"));
     return msg;
 }
 
@@ -146,14 +146,14 @@ void Node1::handleMessage(cMessage *msg)
         else if (nodeType == RECEIVER)
         {
 
-            EV << "msg name: " << msg->getName() << endl;
+            EV << "receiver got a msg: " << msg->getName() << endl;
             // if the ack or nack is processed
             if (strcmp(msg->getName(), "selfMsg") == 0)
             {
                 if (processed_ack_or_nack != nullptr)
                 {
                     EV << "Sending processed ack or nack" << endl;
-                    inc(frame_expected);
+                    frame_expected = inc(frame_expected);
                     sendDelayed(processed_ack_or_nack, transmission_time, "out");
                     processed_ack_or_nack = nullptr; // Clear after sending
                 }
@@ -165,7 +165,7 @@ void Node1::handleMessage(cMessage *msg)
                 return;
             }
             // check if the sent message is correct
-            MyMessage_Base *myMsg = dynamic_cast<MyMessage_Base *>(msg);
+            MyMessage_Base *myMsg = check_and_cast<MyMessage_Base *>(msg);
             EV << "msg name: " << myMsg->getM_Payload() << endl;
             if (!myMsg)
             {
@@ -178,6 +178,7 @@ void Node1::handleMessage(cMessage *msg)
             {
                 // send the ack
                 bool error = ErrorDetection(myMsg);
+
                 processed_ack_or_nack = process_and_check_ack(frame_expected, error);
                 EV << "Processing Ack for frame " << frame_expected << endl;
             }
