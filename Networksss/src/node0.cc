@@ -203,11 +203,13 @@ void Node0::message_construction(int frame_nr, int next_frame_to_send, int frame
     msg->setM_Payload(framedPayload.c_str());
 
     // Set the trailer
-    msg->setM_Trailer(trailer_byte(alldata[frame_nr]));
+    msg->setM_Trailer(trailer_byte(framedPayload));
 
     // set the Type
     msg->setM_Type(DATA);
 
+    old_next_frame_to_send=next_frame_to_send;
+    nbuffered++;
     buffer[next_frame_to_send] = msg;
 }
 
@@ -269,7 +271,7 @@ void Node0::initialize()
     error_time = double(getParentModule()->par("ED"));
     loss_probability = double(getParentModule()->par("LP"));
 
-    buffer = new MyMessage_Base *[MAX_SEQ];
+    buffer = new MyMessage_Base *[MAX_SEQ + 1];
     EV << "Node initialized with parameters: "
        << "MAX_SEQ=" << MAX_SEQ << ", "
        << "time_out=" << time_out << ", "
@@ -302,6 +304,7 @@ void Node0::handleMessage(cMessage *msg)
     }
     else
     {
+
         if (nodeType == RECEIVER)
         {
             MyMessage_Base *myMsg = check_and_cast<MyMessage_Base *>(msg);
@@ -318,14 +321,17 @@ void Node0::handleMessage(cMessage *msg)
 
             // if the message is ack or nack then check if it is ack
             EV << "sender got a msg: " << msg->getName() << endl;
-            EV << "next_frame_to_send: " << next_frame_to_send << endl;
-            EV << "frame_expected: " << frame_expected << endl;
-            EV << "ack_expected: " << ack_expected << endl;
-            EV << "nbuffered: " << nbuffered << endl;
+            EV << "next_frame_to_send_b: " << next_frame_to_send << endl;
+            EV << "frame_expected_b: " << frame_expected << endl;
+            EV << "ack_expected_b: " << ack_expected << endl;
+            EV << "nbuffered_b: " << nbuffered << endl;
             MyMessage_Base *myMsg = check_and_cast<MyMessage_Base *>(msg);
+            if(myMsg){
+                EV<<"Message Type :"<<myMsg->getM_Type()<<endl;
+            }
             if (myMsg->getM_Type() == ACK)
             {
-                EV << "Ack " << myMsg->getACK_Num() << "received";
+                EV << "Ack " << myMsg->getACK_Num() << "received" <<endl;
                 // if it is in between ack_expected and next_frame_to_send
                 // we inc the Window slide to it
                 while (inBetween(ack_expected, myMsg->getACK_Num(), next_frame_to_send))
@@ -334,18 +340,29 @@ void Node0::handleMessage(cMessage *msg)
                     // advance the Lower side of the window
                     ack_expected = inc(ack_expected);
                 }
+                EV << "next_frame_to_send_a: " << next_frame_to_send << endl;
+                EV << "frame_expected_a: " << frame_expected << endl;
+                EV << "ack_expected_a: " << ack_expected << endl;
+                EV << "nbuffered_a: " << nbuffered << endl;
             }
             // after processing time , send the message
             if (strcmp(msg->getName(), "selfMsg") == 0)
             {
                 // if it is a self message then send the data message
                 sendDelayed(buffer[next_frame_to_send], transmission_time, "out");
-                nbuffered++;
                 next_frame_to_send = inc(next_frame_to_send);
                 current_frame++;
+                //make the old next frame to send = -1
+                old_next_frame_to_send=-1;
+                EV << "next_frame_to_send_a: " << next_frame_to_send << endl;
+                EV << "frame_expected_a: " << frame_expected << endl;
+                EV << "ack_expected_a: " << ack_expected << endl;
+                EV << "nbuffered_a: " << nbuffered << endl;
             }
-            // if nbuffered less than max_seq process another frame
-            if (nbuffered < MAX_SEQ)
+            // if nbuffered less than max_seq & current_frame index < alldata size
+            // and also if there is a change in next_frame_to_send to avoid sending the same frame
+            //process another frame
+            if (nbuffered < MAX_SEQ && current_frame <alldata.size() && old_next_frame_to_send !=next_frame_to_send)
                 processing_frame(current_frame, next_frame_to_send, frame_expected, processing_time, buffer, alldata);
         }
     }

@@ -7,7 +7,7 @@ make.exe all -C d:\omnetTests\Go-Back-N-Networks\make --print-data-base --no-bui
 
 # This program built for i386-pc-mingw32
 
-# Make data base, printed on Mon Dec 16 00:26:48 2024
+# Make data base, printed on Fri Dec 20 01:44:45 2024
 
 # Variables
 
@@ -38,9 +38,9 @@ NVM_SYMLINK = C:\Program Files\nodejs
 # environment
 PROGRAMDATA = C:\ProgramData
 # environment
-VSCODE_CWD = C:\WINDOWS\system32
+VSCODE_CWD = C:\Users\ADMIN\AppData\Local\Programs\Microsoft VS Code
 # environment
-PATH = D:\VMware\bin\;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Users\ADMIN\FlutterSDK\bin;C:\Program Files\Python312\Scripts\;C:\Program Files\Python312\;C:\Program Files\Microsoft\jdk-11.0.16.101-hotspot\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\HP\IdrsOCR_15.2.10.1114\;C:\Program Files\Azure Data Studio\bin;C:\Users\ADMIN\AppData\Roaming\nvm;C:\Program Files\nodejs;C:\ProgramData\chocolatey\bin;D:\Program Files (x86)\Arm ToolChain;C:\Program Files (x86)\GnuWin32\bin;D:\Program Files (x86)\make;D:\Program Files (x86)\New folder\qemu;C:\Program Files\PuTTY\;C:\Program Files\Microsoft SQL Server\150\Tools\Binn\;D:\Program Files (x86)\New folder\qemu;C:\Users\ADMIN\AppData\Local\Microsoft\WindowsApps;C:\Users\ADMIN\.dotnet\tools;C:\Program Files\Azure Data Studio\bin;C:\Users\ADMIN\AppData\Local\Programs\Microsoft VS Code\bin;C:\Program Files\JetBrains\PyCharm 2023.3.1\bin;C:\Users\ADMIN\AppData\Local\GitHubDesktop\bin;C:\Program Files\qemu;C:\Users\ADMIN\.vscode\New Folder;C:\Users\ADMIN\AppData\Roaming\nvm;C:\Program Files\nodejs;C:\Users\ADMIN\AppData\Roaming\npm;D:\Program Files (x86)\make;C:\Program Files (x86)\GnuWin32\bin;D:\Program Files (x86)\Arm ToolChain;D:\Program Files\JetBrains\IntelliJ IDEA 2023.3.5\bin;C:\Users\ADMIN\AppData\Local\JetBrains\Toolbox\scripts;C:\Users\ADMIN\.dotnet\tools;D:\Fiddler
+PATH = D:\VMware\bin\;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Users\ADMIN\FlutterSDK\bin;C:\Program Files\Python312\Scripts\;C:\Program Files\Python312\;C:\Program Files\Microsoft\jdk-11.0.16.101-hotspot\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\HP\IdrsOCR_15.2.10.1114\;C:\Program Files\Azure Data Studio\bin;C:\Users\ADMIN\AppData\Roaming\nvm;C:\Program Files\nodejs;C:\ProgramData\chocolatey\bin;D:\Program Files (x86)\Arm ToolChain;C:\Program Files (x86)\GnuWin32\bin;D:\Program Files (x86)\make;D:\Program Files (x86)\New folder\qemu;C:\Program Files\PuTTY\;C:\Program Files\Microsoft SQL Server\150\Tools\Binn\;C:\Program Files\dotnet\;D:\Program Files (x86)\New folder\qemu;C:\Users\ADMIN\AppData\Local\Microsoft\WindowsApps;C:\Users\ADMIN\.dotnet\tools;C:\Program Files\Azure Data Studio\bin;C:\Users\ADMIN\AppData\Local\Programs\Microsoft VS Code\bin;C:\Program Files\JetBrains\PyCharm 2023.3.1\bin;C:\Users\ADMIN\AppData\Local\GitHubDesktop\bin;C:\Program Files\qemu;C:\Users\ADMIN\.vscode\New Folder;C:\Users\ADMIN\AppData\Roaming\nvm;C:\Program Files\nodejs;C:\Users\ADMIN\AppData\Roaming\npm;D:\Program Files (x86)\make;C:\Program Files (x86)\GnuWin32\bin;D:\Program Files (x86)\Arm ToolChain;D:\Program Files\JetBrains\IntelliJ IDEA 2023.3.5\bin;C:\Users\ADMIN\AppData\Local\JetBrains\Toolbox\scripts;C:\Users\ADMIN\.dotnet\tools;D:\Fiddler
 # environment
 COMMONPROGRAMW6432 = C:\Program Files\Common Files
 # environment
@@ -68,7 +68,7 @@ ELECTRON_RUN_AS_NODE = 1
 # environment
 INTELLIJ IDEA = D:\Program Files\JetBrains\IntelliJ IDEA 2023.3.5\bin;
 # environment
-CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_12648_TZPEBKZXCRXXOFRM
+CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_10208_ULGPXTRABYEXHDCG
 # environment
 COMPUTERNAME = DESKTOP-6B6KJDA
 # environment
@@ -82,7 +82,7 @@ USERNAME = ADMIN
 # environment
 PUBLIC = C:\Users\Public
 # environment
-VSCODE_CODE_CACHE_PATH = C:\Users\ADMIN\AppData\Roaming\Code\CachedData\138f619c86f1199955d53b4166bef66ef252935c
+VSCODE_CODE_CACHE_PATH = C:\Users\ADMIN\AppData\Roaming\Code\CachedData\42b266171e51a016313f47d0c48aca9295b9cbb2
 # environment
 APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = true
 # environment
@@ -118,7 +118,7 @@ PROCESSOR_IDENTIFIER = Intel64 Family 6 Model 142 Stepping 10, GenuineIntel
 # environment
 OS = Windows_NT
 # environment
-VSCODE_IPC_HOOK = \\.\pipe\d6498c3c-1.96.0-main-sock
+VSCODE_IPC_HOOK = \\.\pipe\d6498c3c-1.96.1-main-sock
 # environment
 HOMEPATH = \Users\ADMIN
 # environment
@@ -154,7 +154,7 @@ LANG = C
 # environment
 PROCESSOR_LEVEL = 6
 # environment
-VSCODE_PID = 12648
+VSCODE_PID = 10208
 # environment
 USERDOMAIN_ROAMINGPROFILE = DESKTOP-6B6KJDA
 # variable set hash-table stats:
@@ -195,7 +195,7 @@ all:
 # strcache size: total = 0 / max = 0 / min = 4096 / avg = 0
 # strcache free: total = 0 / max = 0 / min = 4096 / avg = 0
 
-# Finished Make data base on Mon Dec 16 00:26:48 2024
+# Finished Make data base on Fri Dec 20 01:44:45 2024
 
  
 make.exe: *** d:\omnetTests\Go-Back-N-Networks\make: No such file or directory.  Stop.

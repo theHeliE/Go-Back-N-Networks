@@ -61,6 +61,7 @@ private:
   double loss_probability;               // loss probability for the ack/nack message
   bitset<4> message_error_code;          // to store error code for each message
   string data;                           // to read each message from file
+  int old_next_frame_to_send;            // to store the old next frame to send
 
 public:
   string Framing(const string &data);                                                                                                                        // function to frame the data

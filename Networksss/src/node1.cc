@@ -87,10 +87,10 @@ MyMessage_Base *Node1::process_and_check_ack(int frame_expected, bool error)
     msg->setSeq_Num(frame_expected);
 
     // Set the ack expected
-    msg->setACK_Num((frame_expected + MAX_SEQ) % (MAX_SEQ + 1));
+    msg->setACK_Num(frame_expected);
 
     // Set the Nack expected
-    msg->setNACK_Num((frame_expected + MAX_SEQ) % (MAX_SEQ + 1));
+    msg->setNACK_Num(frame_expected);
 
     // Set the payload
     string dummy = "dummy";
@@ -99,6 +99,8 @@ MyMessage_Base *Node1::process_and_check_ack(int frame_expected, bool error)
     // Set the trailer
     msg->setM_Trailer(trailer_byte(dummy));
 
+    // is_processing = true
+    is_processing = true;
     scheduleAt(simTime() + processing_time, new MyMessage_Base("selfMsg"));
     return msg;
 }
@@ -131,6 +133,7 @@ void Node1::initialize()
     duplication_time = double(getParentModule()->par("DD"));
     error_time = double(getParentModule()->par("ED"));
     loss_probability = double(getParentModule()->par("LP"));
+    is_processing = false;
 
     buffer = new MyMessage_Base *[MAX_SEQ + 1];
 }
@@ -152,10 +155,23 @@ void Node1::handleMessage(cMessage *msg)
             {
                 if (processed_ack_or_nack != nullptr)
                 {
-                    EV << "Sending processed ack or nack" << endl;
+                    EV << "Sending processed ack or nack with ack number" <<processed_ack_or_nack->getACK_Num() << endl;
                     frame_expected = inc(frame_expected);
                     sendDelayed(processed_ack_or_nack, transmission_time, "out");
                     processed_ack_or_nack = nullptr; // Clear after sending
+                    is_processing = false;           // Done processing
+
+                    // check if there are messages waiting to be processed
+                    // process the First message in the waiting list and remove it from the list
+                    if (waited_messages.size() > 0)
+                    {
+                        // send the ack
+                        bool error = ErrorDetection(waited_messages[0]);
+                        // process the ack
+                        processed_ack_or_nack = process_and_check_ack(frame_expected, error);
+                        EV << "Processing Ack for frame " << frame_expected << endl;
+                        waited_messages.erase(waited_messages.begin());
+                    }
                 }
                 else
                 {
@@ -176,11 +192,20 @@ void Node1::handleMessage(cMessage *msg)
             // if the message is a data message
             if (myMsg->getM_Type() == DATA)
             {
-                // send the ack
-                bool error = ErrorDetection(myMsg);
-
-                processed_ack_or_nack = process_and_check_ack(frame_expected, error);
-                EV << "Processing Ack for frame " << frame_expected << endl;
+                // First , check if I am currently processing a message
+                // add the received message to the waiting list and
+                if (is_processing)
+                {
+                    waited_messages.push_back(myMsg);
+                }
+                else
+                {
+                    // send the ack
+                    bool error = ErrorDetection(myMsg);
+                    // process the ack
+                    processed_ack_or_nack = process_and_check_ack(frame_expected, error);
+                    EV << "Processing Ack for frame " << frame_expected << endl;
+                }
             }
         }
     }
