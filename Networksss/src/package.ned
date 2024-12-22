@@ -10,8 +10,8 @@ import ned.IdealChannel;
 network Network
 {
     parameters:
-        int WS = default(5); // Window size
-        int TO = default(10); // timeout interval in seconds
+        int WS = default(4); // Window size
+        int TO = default(7); // timeout interval in seconds
         double PT = default(0.5); // The sender’s and receivers’ processing time for each frame
         double TD = default(1.0); // Transmission delay for any frame
         double ED = default(4.0); // Error delay for any frame

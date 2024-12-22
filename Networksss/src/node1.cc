@@ -119,13 +119,36 @@ bitset<8> Node1::trailer_byte(string data)
 
     return xorval;
 }
+
+string Node1::Deframing(const string &data)
+{
+    // define a string to store the deframed data as well as a
+    // when the data is deframed, first and last character is removed (flag characters)
+    // then when a '/' is found, the next character is added to the deframed data
+    // this is because the character after the '/' is the original character
+    string deframedData;
+
+    for (int i = 1; i < data.length() - 1; i++)
+    {
+        // if the character is a '/', skip it and go to the next character
+        if (data[i] == '/')
+        {
+            i++;
+        }
+        deframedData += data[i];
+    }
+
+    return deframedData;
+}
 void Node1::initialize()
 {
     // Intialization of Needed Parameters
+    nodeType = NEITHER;
     next_frame_to_send = 0;
     frame_expected = 0;
     nbuffered = 0;
     ack_expected = 0;
+    current_frame = 0;
     MAX_SEQ = getParentModule()->par("WS");
     time_out = getParentModule()->par("TO");
     processing_time = double(getParentModule()->par("PT"));
@@ -134,6 +157,8 @@ void Node1::initialize()
     error_time = double(getParentModule()->par("ED"));
     loss_probability = double(getParentModule()->par("LP"));
     is_processing = false;
+    processed_ack_or_nack = nullptr;
+    last_correct_frame_received = nullptr;
 
     buffer = new MyMessage_Base *[MAX_SEQ + 1];
 }
@@ -155,21 +180,36 @@ void Node1::handleMessage(cMessage *msg)
             {
                 if (processed_ack_or_nack != nullptr)
                 {
-                    EV << "Sending processed ack or nack with ack number" <<processed_ack_or_nack->getACK_Num() << endl;
-                    frame_expected = inc(frame_expected);
-                    sendDelayed(processed_ack_or_nack, transmission_time, "out");
+                    // if it is an ack then send the ack
+                    if (processed_ack_or_nack->getM_Type() == ACK)
+                    {
+                        // send the ack
+                        EV << "Ack " << processed_ack_or_nack->getACK_Num() << " sent";
+                        sendDelayed(processed_ack_or_nack, transmission_time, "out");
+
+                        // increment the frame expected
+                        frame_expected = inc(frame_expected);
+                    }
+                    else
+                    {
+                        // send the nack
+                        EV << "Nack " << processed_ack_or_nack->getNACK_Num() << " sent";
+                        sendDelayed(processed_ack_or_nack, transmission_time, "out");
+                    }
                     processed_ack_or_nack = nullptr; // Clear after sending
                     is_processing = false;           // Done processing
 
-                    // check if there are messages waiting to be processed
-                    // process the First message in the waiting list and remove it from the list
                     if (waited_messages.size() > 0)
                     {
-                        // send the ack
-                        bool error = ErrorDetection(waited_messages[0]);
-                        // process the ack
-                        processed_ack_or_nack = process_and_check_ack(frame_expected, error);
-                        EV << "Processing Ack for frame " << frame_expected << endl;
+                        if (waited_messages[0]->getSeq_Num() == frame_expected)
+                        {
+                            // send the ack
+                            bool error = ErrorDetection(waited_messages[0]);
+
+                            // process the ack
+                            processed_ack_or_nack = process_and_check_ack(waited_messages[0]->getSeq_Num(), error);
+                            EV << "Processing Ack for frame " << waited_messages[0]->getSeq_Num() << "and expecting " << frame_expected << endl;
+                        }
                         waited_messages.erase(waited_messages.begin());
                     }
                 }
@@ -192,8 +232,10 @@ void Node1::handleMessage(cMessage *msg)
             // if the message is a data message
             if (myMsg->getM_Type() == DATA)
             {
+                string message = myMsg->getM_Payload();
+                EV << "Received message: " << Deframing(message) << "with frame number :" << myMsg->getSeq_Num() << "expecting " << frame_expected << endl;
                 // First , check if I am currently processing a message
-                // add the received message to the waiting list and
+
                 if (is_processing)
                 {
                     waited_messages.push_back(myMsg);
@@ -203,8 +245,13 @@ void Node1::handleMessage(cMessage *msg)
                     // send the ack
                     bool error = ErrorDetection(myMsg);
                     // process the ack
-                    processed_ack_or_nack = process_and_check_ack(frame_expected, error);
-                    EV << "Processing Ack for frame " << frame_expected << endl;
+                    // check if the frame is the expected frame
+                    if (myMsg->getSeq_Num() == frame_expected)
+                    {
+                        // process the ack
+                        processed_ack_or_nack = process_and_check_ack(myMsg->getSeq_Num(), error);
+                        EV << "Processing Ack for frame " << myMsg->getSeq_Num() << "and expecting " << frame_expected << endl;
+                    }
                 }
             }
         }

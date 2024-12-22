@@ -1,7 +1,8 @@
-1010 The moon$, sometimes$  
-0000 visible in the$/night sky, is Earth's only$/natural satellite$.  
-0100 It influences tides through its gravitational$ pull$/force$.  
-0000 The surface of the moon$ is covered in craters$, valleys$, and plains$.  
-0001 Moonlight$ is actually sunlight$ reflected$/off the moon's$/surface$.  
-0100 Humans first landed$/on the moon during the Apollo$/11 mission$ in 1969.  
-0000 $$Exploration$/ of the moon continues$ through$/rovers and satellites$.  
+0001 The moon$, sometimes$.  
+1001 visible in the$/night sky, is Earth's only$/natural satellite$.  
+0001 It influences tides through its gravitational$ pull$/force$.  
+0011 The surface of the moon$ is covered in craters$, valleys$, and plains$.  
+1111 Moonlight$ is actually sunlight$ reflected$/off the moon's$/surface$.  
+0110 Humans first landed$/on the moon during the Apollo$/11 mission$ in 1969.  
+1011 $$Exploration$/ of the moon continues$ through$/rovers and satellites$.  
+ 
