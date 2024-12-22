@@ -1,8 +1,8 @@
 version 3
-run General-0-20241222-23:16:33-22568
+run General-0-20241223-00:15:49-3628
 attr configname General
-attr datetime 20241222-23:16:33
-attr datetimef 20241222-231633
+attr datetime 20241223-00:15:49
+attr datetimef 20241223-001549
 attr experiment General
 attr inifile omnetpp.ini
 attr iterationvars ""
@@ -10,42 +10,7 @@ attr iterationvarsd ""
 attr iterationvarsf ""
 attr measurement ""
 attr network networksss.Network
-attr processid 22568
-attr repetition 0
-attr replication #0
-attr resultdir results
-attr runnumber 0
-attr seedset 0
-config network networksss.Network
-
-par Network.node0.out.channel typename "\"ned.IdealChannel\""
-par Network.node1.out.channel typename "\"ned.IdealChannel\""
-par Network.coordinator.out[1].channel typename "\"ned.IdealChannel\""
-par Network.coordinator.out[0].channel typename "\"ned.IdealChannel\""
-par Network.node0 typename "\"networksss.Node0\""
-par Network.node1 typename "\"networksss.Node1\""
-par Network.coordinator typename "\"networksss.Coordinator\""
-par Network typename "\"networksss.Network\""
-par Network WS 4
-par Network TO 7
-par Network PT 0.5
-par Network TD 1
-par Network ED 4
-par Network DD 0.1
-par Network LP 0.1
-
-run General-0-20241222-23:02:30-23968
-attr configname General
-attr datetime 20241222-23:02:30
-attr datetimef 20241222-230230
-attr experiment General
-attr inifile omnetpp.ini
-attr iterationvars ""
-attr iterationvarsd ""
-attr iterationvarsf ""
-attr measurement ""
-attr network networksss.Network
-attr processid 23968
+attr processid 3628
 attr repetition 0
 attr replication #0
 attr resultdir results

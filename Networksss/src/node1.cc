@@ -205,7 +205,6 @@ void Node1::handleMessage(cMessage *msg)
                         {
                             // send the ack
                             bool error = ErrorDetection(waited_messages[0]);
-
                             // process the ack
                             processed_ack_or_nack = process_and_check_ack(waited_messages[0]->getSeq_Num(), error);
                             EV << "Processing Ack for frame " << waited_messages[0]->getSeq_Num() << "and expecting " << frame_expected << endl;

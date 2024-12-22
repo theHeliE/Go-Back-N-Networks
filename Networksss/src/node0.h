@@ -85,7 +85,7 @@ public:
   void start_timer(int seq_nr, int time_out);                                                                                                                                                            // to start the timer of a certain frame
   void stop_timer(int seq_nr);                                                                                                                                                                           // to stop timer
   void send_message(message_collection *msg_to_be_sent);                                                                                                                                                 // send the message based on the error codes given
-  void message_manipulation(message_collection *&msg_to_be_sent);                                                                                                                                        // to modify the message itself
+  void message_manipulation(MyMessage_Base*&msg);                                                                                                                                        // to modify the message itself
 
 protected:
   virtual void initialize() override;
