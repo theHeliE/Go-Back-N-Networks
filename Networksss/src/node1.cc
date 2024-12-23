@@ -72,21 +72,9 @@ bool Node1::ErrorDetection(MyMessage_Base *msg)
     return xorval != 0;
 }
 
-MyMessage_Base *Node1::process_and_check_ack(int frame_expected, bool error)
+MyMessage_Base *Node1::process_and_check_ack(int &frame_expected, bool error)
 {
     MyMessage_Base *msg = new MyMessage_Base("");
-    // Set the message type to ACK or NACK depending on the error
-    // if it no error send ACK else send NACK
-    // also in ACK increment the frame expected
-    if (error)
-    {
-        msg->setM_Type(NACK);
-    }
-    else
-    {
-        frame_expected = inc(frame_expected);
-        msg->setM_Type(ACK);
-    }
 
     // Set the frame number
     msg->setSeq_Num(frame_expected);
@@ -103,6 +91,23 @@ MyMessage_Base *Node1::process_and_check_ack(int frame_expected, bool error)
 
     // Set the trailer
     msg->setM_Trailer(trailer_byte(dummy));
+
+    // Set the message type to ACK or NACK depending on the error
+    // if it no error send ACK else send NACK
+    // also in ACK increment the frame expected
+
+    if (error)
+    {
+
+        msg->setM_Type(NACK);
+    }
+    else
+    {
+        EV << "Frame Expected_old: " << frame_expected << endl;
+        frame_expected = inc(frame_expected);
+        EV << "Frame Expected_new: " << frame_expected << endl;
+        msg->setM_Type(ACK);
+    }
 
     // is_processing = true
     is_processing = true;
@@ -179,7 +184,6 @@ void Node1::handleMessage(cMessage *msg)
 
         if (nodeType == SENDER)
         {
-
         }
         else if (nodeType == RECEIVER)
         {
@@ -187,7 +191,7 @@ void Node1::handleMessage(cMessage *msg)
             // if the message is from the sender
             // check if the sent message is correct
             MyMessage_Base *myMsg = check_and_cast<MyMessage_Base *>(msg);
-            EV << "msg name: " << Deframing(myMsg->getM_Payload()) << endl;
+            EV << "msg name: " << msg->getName() << endl;
             if (!myMsg)
             {
                 EV << "Received message is not of type MyMessage_Base" << endl;
@@ -196,8 +200,9 @@ void Node1::handleMessage(cMessage *msg)
             }
 
             // if the message is an data
-            if (myMsg->getM_Type() == DATA)
+            if (myMsg->getM_Type() == DATA && strcmp(myMsg->getM_Payload(),"")>0)
             {
+                EV << myMsg->getM_Payload() << endl;
                 // check if this frame is the one expected
                 if (myMsg->getSeq_Num() == frame_expected)
                 {
@@ -207,16 +212,22 @@ void Node1::handleMessage(cMessage *msg)
                     {
                         // if there is an ack or nack being processed then store the last correct frame received
                         last_correct_frame_received = myMsg;
+                        EV << "correct frame received is not null : " << last_correct_frame_received->getM_Payload() << endl;
                     }
                     else
                     {
                         bool error = ErrorDetection(myMsg);
+
+                        //deframe the message
+                        string message = string(myMsg->getM_Payload());
+                        EV<<"Message Received : " << Deframing(message)<<endl;
 
                         // process the ack or nack
                         processed_ack_or_nack = process_and_check_ack(frame_expected, error);
                     }
                 }
             }
+
             // if the message is a self msg
             if (strcmp(msg->getName(), "selfMsg") == 0)
             {
@@ -227,20 +238,22 @@ void Node1::handleMessage(cMessage *msg)
                     if (processed_ack_or_nack->getM_Type() == ACK)
                     {
                         // send the ack
-                        EV << "Ack " << processed_ack_or_nack->getACK_Num() << " sent";
+                        EV << "Ack " << processed_ack_or_nack->getACK_Num() << " sent" << endl;
+                        ;
                         sendDelayed(processed_ack_or_nack, transmission_time, "out");
                     }
                     else
                     {
                         // send the nack
-                        EV << "Nack " << processed_ack_or_nack->getNACK_Num() << " sent";
+                        EV << "Nack " << processed_ack_or_nack->getNACK_Num() << " sent" << endl;
                         sendDelayed(processed_ack_or_nack, transmission_time, "out");
                     }
                     processed_ack_or_nack = nullptr; // Clear after sending
                     is_processing = false;           // Done processing
 
-                    if (last_correct_frame_received)
+                    if (last_correct_frame_received != nullptr)
                     {
+                        EV << "Last correct frame received is not null : " << last_correct_frame_received->getM_Payload() << endl;
                         // if there is a last correct frame received then process it
                         bool error = ErrorDetection(last_correct_frame_received);
                         processed_ack_or_nack = process_and_check_ack(frame_expected, error);

@@ -68,7 +68,7 @@ private:
 
 public:
   bool coordinator_message_checker(cMessage *msg);
-  MyMessage_Base *process_and_check_ack(int frame_expected, bool error);
+  MyMessage_Base *process_and_check_ack(int &frame_expected, bool error);
   bool ErrorDetection(MyMessage_Base *msg);
   int inc(int seq_nr);
   bitset<8> trailer_byte(string data);
