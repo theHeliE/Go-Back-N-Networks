@@ -75,14 +75,19 @@ bool Node1::ErrorDetection(MyMessage_Base *msg)
 MyMessage_Base *Node1::process_and_check_ack(int frame_expected, bool error)
 {
     MyMessage_Base *msg = new MyMessage_Base("");
+    // Set the message type to ACK or NACK depending on the error
+    // if it no error send ACK else send NACK
+    // also in ACK increment the frame expected
     if (error)
     {
         msg->setM_Type(NACK);
     }
     else
     {
+        frame_expected = inc(frame_expected);
         msg->setM_Type(ACK);
     }
+
     // Set the frame number
     msg->setSeq_Num(frame_expected);
 
@@ -101,7 +106,11 @@ MyMessage_Base *Node1::process_and_check_ack(int frame_expected, bool error)
 
     // is_processing = true
     is_processing = true;
+
+    // Schedule the message to be sent after the processing time
     scheduleAt(simTime() + processing_time, new MyMessage_Base("selfMsg"));
+
+    // return msg
     return msg;
 }
 
@@ -170,14 +179,48 @@ void Node1::handleMessage(cMessage *msg)
 
         if (nodeType == SENDER)
         {
+
         }
         else if (nodeType == RECEIVER)
         {
 
-            EV << "receiver got a msg: " << msg->getName() << endl;
-            // if the ack or nack is processed
+            // if the message is from the sender
+            // check if the sent message is correct
+            MyMessage_Base *myMsg = check_and_cast<MyMessage_Base *>(msg);
+            EV << "msg name: " << Deframing(myMsg->getM_Payload()) << endl;
+            if (!myMsg)
+            {
+                EV << "Received message is not of type MyMessage_Base" << endl;
+                delete msg; // Clean up the message if it's not the expected type
+                return;
+            }
+
+            // if the message is an data
+            if (myMsg->getM_Type() == DATA)
+            {
+                // check if this frame is the one expected
+                if (myMsg->getSeq_Num() == frame_expected)
+                {
+                    // first check if there is ack or nack that is being processed
+
+                    if (is_processing)
+                    {
+                        // if there is an ack or nack being processed then store the last correct frame received
+                        last_correct_frame_received = myMsg;
+                    }
+                    else
+                    {
+                        bool error = ErrorDetection(myMsg);
+
+                        // process the ack or nack
+                        processed_ack_or_nack = process_and_check_ack(frame_expected, error);
+                    }
+                }
+            }
+            // if the message is a self msg
             if (strcmp(msg->getName(), "selfMsg") == 0)
             {
+                // if the last correct frame received is not null then send it
                 if (processed_ack_or_nack != nullptr)
                 {
                     // if it is an ack then send the ack
@@ -186,9 +229,6 @@ void Node1::handleMessage(cMessage *msg)
                         // send the ack
                         EV << "Ack " << processed_ack_or_nack->getACK_Num() << " sent";
                         sendDelayed(processed_ack_or_nack, transmission_time, "out");
-
-                        // increment the frame expected
-                        frame_expected = inc(frame_expected);
                     }
                     else
                     {
@@ -199,57 +239,12 @@ void Node1::handleMessage(cMessage *msg)
                     processed_ack_or_nack = nullptr; // Clear after sending
                     is_processing = false;           // Done processing
 
-                    if (waited_messages.size() > 0)
+                    if (last_correct_frame_received)
                     {
-                        if (waited_messages[0]->getSeq_Num() == frame_expected)
-                        {
-                            // send the ack
-                            bool error = ErrorDetection(waited_messages[0]);
-                            // process the ack
-                            processed_ack_or_nack = process_and_check_ack(waited_messages[0]->getSeq_Num(), error);
-                            EV << "Processing Ack for frame " << waited_messages[0]->getSeq_Num() << "and expecting " << frame_expected << endl;
-                        }
-                        waited_messages.erase(waited_messages.begin());
-                    }
-                }
-                else
-                {
-                    EV << "Error: processed_ack_or_nack is nullptr" << endl;
-                }
-                delete msg;
-                return;
-            }
-            // check if the sent message is correct
-            MyMessage_Base *myMsg = check_and_cast<MyMessage_Base *>(msg);
-            EV << "msg name: " << myMsg->getM_Payload() << endl;
-            if (!myMsg)
-            {
-                EV << "Received message is not of type MyMessage_Base" << endl;
-                delete msg; // Clean up the message if it's not the expected type
-                return;
-            }
-            // if the message is a data message
-            if (myMsg->getM_Type() == DATA)
-            {
-                string message = myMsg->getM_Payload();
-                EV << "Received message: " << Deframing(message) << "with frame number :" << myMsg->getSeq_Num() << "expecting " << frame_expected << endl;
-                // First , check if I am currently processing a message
-
-                if (is_processing)
-                {
-                    waited_messages.push_back(myMsg);
-                }
-                else
-                {
-                    // send the ack
-                    bool error = ErrorDetection(myMsg);
-                    // process the ack
-                    // check if the frame is the expected frame
-                    if (myMsg->getSeq_Num() == frame_expected)
-                    {
-                        // process the ack
-                        processed_ack_or_nack = process_and_check_ack(myMsg->getSeq_Num(), error);
-                        EV << "Processing Ack for frame " << myMsg->getSeq_Num() << "and expecting " << frame_expected << endl;
+                        // if there is a last correct frame received then process it
+                        bool error = ErrorDetection(last_correct_frame_received);
+                        processed_ack_or_nack = process_and_check_ack(frame_expected, error);
+                        last_correct_frame_received = nullptr;
                     }
                 }
             }
