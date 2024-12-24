@@ -14,16 +14,67 @@
 //
 
 #include "node1.h"
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <filesystem> // C++17 or later
+#include <algorithm>
 
 Define_Module(Node1);
+using namespace std;
 
+string Node1::Framing(const string &data)
+{
+    string framedData;
+
+    // START
+    framedData += '$';
+
+    for (char c : data)
+    {
+        if (c == '$' || c == '/')
+        {
+            // add ESC
+            framedData += '/';
+        }
+        // add Data
+        framedData += c;
+    }
+
+    // END
+    framedData += '$';
+
+    return framedData;
+}
+
+string Node1::Deframing(const string &data)
+{
+    // define a string to store the deframed data as well as a
+    // when the data is deframed, first and last character is removed (flag characters)
+    // then when a '/' is found, the next character is added to the deframed data
+    // this is because the character after the '/' is the original character
+    string deframedData;
+
+    for (int i = 1; i < data.length() - 1; i++)
+    {
+        // if the character is a '/', skip it and go to the next character
+        if (data[i] == '/')
+        {
+            i++;
+        }
+        deframedData += data[i];
+    }
+
+    return deframedData;
+}
+
+// circulary increment the sequence number
 int Node1::inc(int seq_nr)
 {
-
     return (seq_nr + 1) % (MAX_SEQ + 1);
 }
 
-bool Node1::coordinator_message_checker(cMessage *msg)
+bool Node1 ::coordinator_message_checker(cMessage *msg)
 {
     // if the message is from the coordinator and the message is sender then this node
     // is the sender else if the message is receiver then this node is the receiver
@@ -31,7 +82,7 @@ bool Node1::coordinator_message_checker(cMessage *msg)
     if (strcmp(msg->getName(), "sender") == 0)
     {
         nodeType = SENDER;
-        // ReadFile(); // Read the input file
+        ReadFile(); // Read the input file
         EV << "Node1 set as SENDER with " << alldata.size() << " messages." << endl;
 
         return true;
@@ -54,7 +105,7 @@ bool Node1::ErrorDetection(MyMessage_Base *msg)
 {
 
     // Get the Payload and create the Variable that stores the XOR value
-    string s = std::string(msg->getM_Payload());
+    string s = string(msg->getM_Payload());
     bitset<8> xorval(0);
 
     // XOR the payload
@@ -70,6 +121,44 @@ bool Node1::ErrorDetection(MyMessage_Base *msg)
     // Check if the XOR value is not 0 then error detected else no error detected
 
     return xorval != 0;
+}
+
+void Node1::ReadFile()
+{
+    // Open the file
+    ifstream infile("Textfiles/input0.txt");
+    if (!infile.is_open())
+    {
+        cerr << "Error opening file: Textfiles/input0.txt" << endl;
+        return;
+    }
+
+    // Read the file line by line
+    string line;
+    while (getline(infile, line))
+    {
+        if (!line.empty() && !std::all_of(line.begin(), line.end(), ::isspace))
+        {
+            // Parse the line to extract time and node_id
+            istringstream iss(line);
+
+            // Extract the first 4 characters as a bitset
+            message_error_code = bitset<4>(line.substr(0, 4));
+
+            // Extract the remainder of the line as a message string
+            data = line.substr(5);
+
+            // Store the error code and message in the vectors
+            message_error_codes.push_back(message_error_code);
+            alldata.push_back(data);
+
+            // EV << "Code : " << message_error_code << endl;
+            // EV << "Message: " << data << endl;
+        }
+    }
+
+    // Close the file
+    infile.close();
 }
 
 MyMessage_Base *Node1::process_and_check_ack(int &frame_expected, bool error)
@@ -119,6 +208,20 @@ MyMessage_Base *Node1::process_and_check_ack(int &frame_expected, bool error)
     return msg;
 }
 
+// check if the frame is in between the window
+
+bool Node1::inBetween(int seq_nra, int seq_nrb, int seq_nrc)
+{
+    if ((seq_nra <= seq_nrb && seq_nrb < seq_nrc) || (seq_nra <= seq_nrb && seq_nra > seq_nrc) || (seq_nra > seq_nrc && seq_nrb < seq_nrc))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 bitset<8> Node1::trailer_byte(string data)
 {
     // Get the Payload and create the Variable that stores the XOR value
@@ -134,35 +237,162 @@ bitset<8> Node1::trailer_byte(string data)
     return xorval;
 }
 
-string Node1::Deframing(const string &data)
+void Node1::message_construction(int frame_nr, int next_frame_to_send, int frame_expected, message_collection **&buffer, vector<string> &alldata, vector<bitset<4>> &message_error_code)
 {
-    // define a string to store the deframed data as well as a
-    // when the data is deframed, first and last character is removed (flag characters)
-    // then when a '/' is found, the next character is added to the deframed data
-    // this is because the character after the '/' is the original character
-    string deframedData;
+    // Create a new message
+    MyMessage_Base *nmsg = new MyMessage_Base("");
 
-    for (int i = 1; i < data.length() - 1; i++)
+    // Set the frame number
+    nmsg->setSeq_Num(next_frame_to_send);
+
+    // Set the ack expected
+    nmsg->setACK_Num((frame_expected + MAX_SEQ) % (MAX_SEQ + 1));
+
+    // Set the Nack expected
+    nmsg->setNACK_Num((frame_expected + MAX_SEQ) % (MAX_SEQ + 1));
+
+    // Set the payload
+    string framedPayload = Framing(alldata[frame_nr]);
+    nmsg->setM_Payload(framedPayload.c_str());
+
+    // Set the trailer
+    nmsg->setM_Trailer(trailer_byte(framedPayload));
+
+    // set the Type
+    nmsg->setM_Type(DATA);
+    // In order to not process 2 frames at the same time
+    old_next_frame_to_send = next_frame_to_send;
+
+    // add the msg to the buffer
+    buffer[next_frame_to_send]->msg = nmsg;
+
+    // set the error_code of the message
+    buffer[next_frame_to_send]->error_code = message_error_code[frame_nr];
+
+    // set the timer of the message to Null
+    buffer[next_frame_to_send]->timer = nullptr;
+
+    EV << "Message Constructed" << endl;
+}
+
+void Node1::processing_frame(int frame_nr, int next_frame_to_send, int frame_expected, double processing_time, message_collection **&buffer, vector<string> &alldata, vector<bitset<4>> &message_error_code)
+{
+    // construct message and add it to buffer
+    message_construction(frame_nr, next_frame_to_send, frame_expected, buffer, alldata, message_error_code);
+
+    // Schedule the message
+    scheduleAt(simTime() + processing_time, new MyMessage_Base("selfMsg"));
+
+    EV << "processing frame " << buffer[next_frame_to_send]->msg->getSeq_Num() << endl
+       << "Payload: " << buffer[next_frame_to_send]->msg->getM_Payload() << endl
+       << " " << "Trailer: " << buffer[next_frame_to_send]->msg->getM_Trailer().to_ulong() << endl;
+}
+
+void Node1::start_timer(int seq_nr, int time_out)
+{
+    // create timer
+    MyMessage_Base *timer = new MyMessage_Base("timer");
+
+    // set the timer message in the buffer
+    buffer[seq_nr]->timer = timer;
+
+    // start the timer
+    scheduleAt(simTime() + time_out, timer);
+}
+
+void Node1::stop_timer(int seq_nr)
+{
+    // stop the timer
+    cancelEvent(buffer[seq_nr]->timer);
+
+    // set the timer to null
+    buffer[seq_nr]->timer = nullptr;
+}
+
+void Node1::message_manipulation(MyMessage_Base *&msg)
+{
+    const char *pl = msg->getM_Payload();
+    string str = pl;
+    // Access the second character and modify its fourth bit
+    unsigned char firstChar = str[1];
+    firstChar ^= (1 << 3);
+    str[1] = firstChar;
+    EV << " Adding Error by changing the Fourth bit of second character in the payload (the first character after the start flag)" << endl;
+    pl = str.c_str();
+    msg->setM_Payload(pl);
+}
+
+void Node1::send_message(message_collection *msg_to_be_sent)
+{
+    // first define the total sending time and total sending time for the duplicate
+    // also define the duplicated message if there is a duplication error
+    // and the message that will be sent
+    double total_time = transmission_time;
+    double total_time_duplicate = 0;
+    MyMessage_Base *duplicated_msg = nullptr;
+    MyMessage_Base *msg = msg_to_be_sent->msg->dup();
+
+    // if there is loss , ignore the messages
+    if (msg_to_be_sent->error_code[2] == 1)
     {
-        // if the character is a '/', skip it and go to the next character
-        if (data[i] == '/')
-        {
-            i++;
-        }
-        deframedData += data[i];
+        EV << "This message will be lost with frame number : " << msg_to_be_sent->msg->getSeq_Num() << endl;
+        return;
     }
 
-    return deframedData;
+    else
+    {
+        // classify errors based on error_code
+        // check if there is modification (bit 3)
+        if (msg_to_be_sent->error_code[3] == 1)
+        {
+            EV << "This message will be modified at second character fourth bit" << endl;
+            // modify the message
+
+            message_manipulation(msg);
+        }
+
+        // check if there is delay error
+        if (msg_to_be_sent->error_code[0] == 1)
+        {
+            // if there is delay error, add delay to the sending time
+            EV << "This message will be delayed by =" << error_time << endl;
+            total_time += error_time;
+        }
+
+        // check if there is duplication delay
+        if (msg_to_be_sent->error_code[1] == 1)
+        {
+            EV << "This message will be duplicated with duplication time =" << duplication_time << endl;
+            // if there is duplication delay, create the duplicated Message
+            duplicated_msg = msg->dup();
+
+            // update the total sending time
+            total_time_duplicate = total_time + duplication_time;
+        }
+
+        // send the message
+        sendDelayed(msg, total_time, "out");
+        EV << "Total Transmission time for this message :" << total_time << endl;
+
+        // if there is duplicate send it
+        if (duplicated_msg)
+        {
+
+            sendDelayed(duplicated_msg, total_time_duplicate, "out");
+            EV << "Total Transmission time for the duplicate message :" << total_time_duplicate << endl;
+        }
+    }
 }
+
 void Node1::initialize()
 {
+
     // Intialization of Needed Parameters
-    nodeType = NEITHER;
     next_frame_to_send = 0;
     frame_expected = 0;
     nbuffered = 0;
     ack_expected = 0;
-    current_frame = 0;
+    timeout_buffer_count = 0;
     MAX_SEQ = getParentModule()->par("WS");
     time_out = getParentModule()->par("TO");
     processing_time = double(getParentModule()->par("PT"));
@@ -174,20 +404,42 @@ void Node1::initialize()
     processed_ack_or_nack = nullptr;
     last_correct_frame_received = nullptr;
 
-    buffer = new MyMessage_Base *[MAX_SEQ + 1];
+    buffer = new message_collection *[MAX_SEQ + 1];
+
+    // Allocate memory for each element in the buffer
+    for (int i = 0; i <= MAX_SEQ; ++i)
+    {
+        buffer[i] = new message_collection(); // Allocate memory
+        buffer[i]->msg = nullptr;             // Initialize msg to nullptr
+        buffer[i]->timer = nullptr;           // Initialize timer to nullptr
+    }
+
+    EV << "Node initialized with parameters: "
+       << "MAX_SEQ=" << MAX_SEQ << ", "
+       << "time_out=" << time_out << ", "
+       << "procesing_time=" << processing_time << ", "
+       << "transmission_time=" << transmission_time << ", "
+       << "duplication_time=" << duplication_time << ", "
+       << "error_time=" << error_time << ", "
+       << "loss_probability=" << loss_probability << endl;
 }
 
 void Node1::handleMessage(cMessage *msg)
 {
-    if (!coordinator_message_checker(msg))
+    // if it is a coordinator message only then check if it is sender or receiver message
+    // else focus on the protocol
+    if (coordinator_message_checker(msg))
     {
-
         if (nodeType == SENDER)
         {
+            EV << "Coordinator message received and started processing the First frame" << endl;
+            processing_frame(current_frame, next_frame_to_send, frame_expected, processing_time, buffer, alldata, message_error_codes);
         }
-        else if (nodeType == RECEIVER)
+    }
+    else
+    {
+        if (nodeType == RECEIVER)
         {
-
             // if the message is from the sender
             // check if the sent message is correct
             MyMessage_Base *myMsg = check_and_cast<MyMessage_Base *>(msg);
@@ -280,6 +532,140 @@ void Node1::handleMessage(cMessage *msg)
                     }
                 }
             }
+        }
+        else if (nodeType == SENDER)
+        {
+
+            // if the message is ack or nack then check if it is ack
+            EV << "sender got a msg: " << msg->getName() << endl;
+            EV << "next_frame_to_send_b: " << next_frame_to_send << endl;
+            EV << "frame_expected_b: " << frame_expected << endl;
+            EV << "ack_expected_b: " << ack_expected << endl;
+            EV << "nbuffered_b: " << nbuffered << endl;
+            MyMessage_Base *myMsg = check_and_cast<MyMessage_Base *>(msg);
+            if (myMsg)
+            {
+                EV << "Message Type :" << myMsg->getM_Type() << endl;
+            }
+            // Ack Arrival
+            if (myMsg->getM_Type() == ACK)
+            {
+                EV << "Ack " << myMsg->getACK_Num() << "received" << endl;
+                // if it is in between ack_expected and next_frame_to_send
+                // we inc the Window slide to it
+                while (inBetween(ack_expected, myMsg->getACK_Num(), next_frame_to_send))
+                {
+                    nbuffered--;
+                    // stop the timer
+                    stop_timer(ack_expected);
+                    // advance the Lower side of the window
+                    ack_expected = inc(ack_expected);
+                }
+                EV << "next_frame_to_send_a: " << next_frame_to_send << endl;
+                EV << "frame_expected_a: " << frame_expected << endl;
+                EV << "ack_expected_a: " << ack_expected << endl;
+                EV << "nbuffered_a: " << nbuffered << endl;
+            }
+            if (myMsg->getM_Type() == NACK)
+            {
+                EV << "NACK " << myMsg->getACK_Num() << endl;
+            }
+            // after processing time , send the message
+            if (strcmp(msg->getName(), "selfMsg") == 0)
+            {
+                // if it is a self message then send the data message (it means that the message is
+                // buffered and processed and it is time to send it)
+
+                // start the timer
+                start_timer(next_frame_to_send, time_out);
+
+                // send the data message
+                send_message(buffer[next_frame_to_send]);
+
+                // increment the next frame to send and current frame and nbuffered
+                next_frame_to_send = inc(next_frame_to_send);
+                current_frame++;
+                nbuffered++;
+
+                //  make the old next frame to send = -1
+                old_next_frame_to_send = -1;
+
+                EV << "next_frame_to_send_a: " << next_frame_to_send << endl;
+                EV << "frame_expected_a: " << frame_expected << endl;
+                EV << "ack_expected_a: " << ack_expected << endl;
+                EV << "nbuffered_a: " << nbuffered << endl;
+            }
+
+            // if timeout occurs
+            if (strcmp(msg->getName(), "timer") == 0)
+            {
+                EV << "time_out frame" << ack_expected;
+
+                // set the next_frame_to_send to the start of the window
+                next_frame_to_send = ack_expected;
+
+                // send the rest of the frames with errors
+                for (int i = 0; i < nbuffered; i++)
+                {
+                    // stop timer of all frames in buffer
+                    stop_timer(next_frame_to_send);
+                    next_frame_to_send = inc(next_frame_to_send);
+                }
+
+                // set it again to the start of the window
+                next_frame_to_send = ack_expected;
+
+                // process the frame again
+                scheduleAt(simTime() + processing_time, new MyMessage_Base("selftimeout"));
+            }
+
+            if (strcmp(msg->getName(), "selftimeout") == 0)
+            {
+                // if it is a self message then send the data message (it means that the message is
+                // buffered and processed and it is time to send it)
+
+                // start the timer
+                start_timer(next_frame_to_send, time_out);
+
+                // if time_out_buffer_count ==0
+                /// send message without errors
+                if (timeout_buffer_count == 0)
+                {
+                    // send without errors
+                    sendDelayed(buffer[next_frame_to_send]->msg->dup(), transmission_time, "out");
+                }
+                else
+                {
+                    // send the data message
+                    send_message(buffer[next_frame_to_send]);
+                }
+
+                // increment the next frame to send and timeout_buffer_count
+                next_frame_to_send = inc(next_frame_to_send);
+                timeout_buffer_count++;
+
+                // I sent the whole window
+                if (timeout_buffer_count == nbuffered)
+                {
+                    timeout_buffer_count = 0;
+                }
+                else
+                {
+                    // simulate the next frame
+                    scheduleAt(simTime() + processing_time, new MyMessage_Base("selftimeout"));
+                }
+
+                EV << "next_frame_to_send_a: " << next_frame_to_send << endl;
+                EV << "frame_expected_a: " << frame_expected << endl;
+                EV << "ack_expected_a: " << ack_expected << endl;
+                EV << "nbuffered_a: " << nbuffered << endl;
+            }
+
+            // if nbuffered less than max_seq & current_frame index < alldata size
+            // and also if there is a change in next_frame_to_send to avoid sending the same frame
+            // process another frame
+            if (nbuffered < MAX_SEQ && current_frame < alldata.size() && old_next_frame_to_send != next_frame_to_send)
+                processing_frame(current_frame, next_frame_to_send, frame_expected, processing_time, buffer, alldata, message_error_codes);
         }
     }
 }
