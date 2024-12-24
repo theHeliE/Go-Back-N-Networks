@@ -375,6 +375,7 @@ void Node0::initialize()
     frame_expected = 0;
     nbuffered = 0;
     ack_expected = 0;
+    timeout_buffer_count = 0;
     MAX_SEQ = getParentModule()->par("WS");
     time_out = getParentModule()->par("TO");
     processing_time = double(getParentModule()->par("PT"));
@@ -496,25 +497,64 @@ void Node0::handleMessage(cMessage *msg)
             {
                 EV << "time_out frame" << ack_expected;
 
-                // send all of the outstanding frames
                 // set the next_frame_to_send to the start of the window
                 next_frame_to_send = ack_expected;
 
-                // send the first frame without any errors and increment the next frame to send and reset the timer
-                sendDelayed(buffer[next_frame_to_send]->msg->dup(), transmission_time, "out");
-                stop_timer(next_frame_to_send);
-                start_timer(next_frame_to_send, time_out);
-                next_frame_to_send = inc(next_frame_to_send);
-
                 // send the rest of the frames with errors
-                for (int i = 1; i < nbuffered; i++)
+                for (int i = 0; i < nbuffered; i++)
                 {
-                    // send the message with errors
-                    send_message(buffer[next_frame_to_send]);
+                    // stop timer of all frames in buffer
                     stop_timer(next_frame_to_send);
-                    start_timer(next_frame_to_send, time_out);
                     next_frame_to_send = inc(next_frame_to_send);
                 }
+
+                // set it again to the start of the window
+                next_frame_to_send = ack_expected;
+
+                // process the frame again
+                scheduleAt(simTime() + processing_time, new MyMessage_Base("selftimeout"));
+            }
+
+            if (strcmp(msg->getName(), "selftimeout") == 0)
+            {
+                // if it is a self message then send the data message (it means that the message is
+                // buffered and processed and it is time to send it)
+
+                // start the timer
+                start_timer(next_frame_to_send, time_out);
+
+                // if time_out_buffer_count ==0
+                /// send message without errors
+                if (timeout_buffer_count == 0)
+                {
+                    // send without errors
+                    sendDelayed(buffer[next_frame_to_send]->msg->dup(), transmission_time, "out");
+                }
+                else
+                {
+                    // send the data message
+                    send_message(buffer[next_frame_to_send]);
+                }
+
+                // increment the next frame to send and timeout_buffer_count
+                next_frame_to_send = inc(next_frame_to_send);
+                timeout_buffer_count++;
+
+                // I sent the whole window
+                if (timeout_buffer_count == nbuffered)
+                {
+                    timeout_buffer_count = 0;
+                }
+                else
+                {
+                    // simulate the next frame
+                    scheduleAt(simTime() + processing_time, new MyMessage_Base("selftimeout"));
+                }
+
+                EV << "next_frame_to_send_a: " << next_frame_to_send << endl;
+                EV << "frame_expected_a: " << frame_expected << endl;
+                EV << "ack_expected_a: " << ack_expected << endl;
+                EV << "nbuffered_a: " << nbuffered << endl;
             }
 
             // if nbuffered less than max_seq & current_frame index < alldata size

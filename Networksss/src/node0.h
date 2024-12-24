@@ -70,6 +70,7 @@ private:
   bitset<4> message_error_code;          // to store error code for each message
   string data;                           // to read each message from file
   int old_next_frame_to_send;            // to store the old next frame to send
+  int timeout_buffer_count;              // to store the number of messages sent when timeout occurs
 public:
   string Framing(const string &data);                                                                                                                                                                    // function to frame the data
   string Deframing(const string &data);                                                                                                                                                                  // function to deframe the data
@@ -85,7 +86,7 @@ public:
   void start_timer(int seq_nr, int time_out);                                                                                                                                                            // to start the timer of a certain frame
   void stop_timer(int seq_nr);                                                                                                                                                                           // to stop timer
   void send_message(message_collection *msg_to_be_sent);                                                                                                                                                 // send the message based on the error codes given
-  void message_manipulation(MyMessage_Base*&msg);                                                                                                                                        // to modify the message itself
+  void message_manipulation(MyMessage_Base *&msg);                                                                                                                                                       // to modify the message itself
 
 protected:
   virtual void initialize() override;

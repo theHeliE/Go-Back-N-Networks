@@ -200,7 +200,7 @@ void Node1::handleMessage(cMessage *msg)
             }
 
             // if the message is an data
-            if (myMsg->getM_Type() == DATA && strcmp(myMsg->getM_Payload(),"")>0)
+            if (myMsg->getM_Type() == DATA && strcmp(myMsg->getM_Payload(), "") > 0)
             {
                 EV << myMsg->getM_Payload() << endl;
                 // check if this frame is the one expected
@@ -218,9 +218,9 @@ void Node1::handleMessage(cMessage *msg)
                     {
                         bool error = ErrorDetection(myMsg);
 
-                        //deframe the message
+                        // deframe the message
                         string message = string(myMsg->getM_Payload());
-                        EV<<"Message Received : " << Deframing(message)<<endl;
+                        EV << "Message Received : " << Deframing(message) << endl;
 
                         // process the ack or nack
                         processed_ack_or_nack = process_and_check_ack(frame_expected, error);
@@ -231,22 +231,41 @@ void Node1::handleMessage(cMessage *msg)
             // if the message is a self msg
             if (strcmp(msg->getName(), "selfMsg") == 0)
             {
+                // generate the random number
+                int random_number = int(uniform(0, 100));
                 // if the last correct frame received is not null then send it
                 if (processed_ack_or_nack != nullptr)
                 {
                     // if it is an ack then send the ack
                     if (processed_ack_or_nack->getM_Type() == ACK)
                     {
-                        // send the ack
-                        EV << "Ack " << processed_ack_or_nack->getACK_Num() << " sent" << endl;
-                        ;
-                        sendDelayed(processed_ack_or_nack, transmission_time, "out");
+                        // to send check if random_number >= loss_probability send
+                        if (random_number >= loss_probability)
+                        {
+                            sendDelayed(processed_ack_or_nack, transmission_time, "out");
+
+                            // send the ack
+                            EV << "Ack " << processed_ack_or_nack->getACK_Num() << " sent" << endl;
+                        }
+                        else
+                        {
+                            EV << "Ack" << processed_ack_or_nack->getACK_Num() << " lost" << endl;
+                        }
                     }
                     else
                     {
-                        // send the nack
-                        EV << "Nack " << processed_ack_or_nack->getNACK_Num() << " sent" << endl;
-                        sendDelayed(processed_ack_or_nack, transmission_time, "out");
+                        // to send check if random_number >= loss_probability send
+                        if (random_number >= loss_probability)
+                        {
+                            sendDelayed(processed_ack_or_nack, transmission_time, "out");
+
+                            // send the nack
+                            EV << "Nack " << processed_ack_or_nack->getNACK_Num() << " sent" << endl;
+                        }
+                        else
+                        {
+                            EV << "Nack" << processed_ack_or_nack->getACK_Num() << " lost" << endl;
+                        }
                     }
                     processed_ack_or_nack = nullptr; // Clear after sending
                     is_processing = false;           // Done processing
