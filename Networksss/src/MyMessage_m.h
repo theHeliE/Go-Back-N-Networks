@@ -76,15 +76,15 @@ class MyMessage_Base : public ::omnetpp::cPacket
 
   protected:
     bool operator==(const MyMessage_Base&) = delete;
-    // make constructors protected to avoid instantiation
-    MyMessage_Base(const MyMessage_Base& other);
     // make assignment operator protected to force the user override it
     MyMessage_Base& operator=(const MyMessage_Base& other);
 
   public:
-    MyMessage_Base(const char *name=nullptr, short kind=0);
     virtual ~MyMessage_Base();
-    virtual MyMessage_Base *dup() const override { return new MyMessage_Base(*this); }
+    // make constructors protected to avoid instantiation
+       MyMessage_Base(const char *name=nullptr, short kind=0);
+       MyMessage_Base(const MyMessage_Base& other);
+    virtual MyMessage_Base *dup() const override {return new MyMessage_Base(*this);}
     virtual void parsimPack(omnetpp::cCommBuffer *b) const override;
     virtual void parsimUnpack(omnetpp::cCommBuffer *b) override;
 

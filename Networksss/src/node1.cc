@@ -23,6 +23,83 @@
 Define_Module(Node1);
 using namespace std;
 
+bitset<4>zeroes(0);
+bitset<8>dummy(0);
+string emptyString = "";
+
+void Node1::logEvent(LogEvent event, float curr_time, bitset<4> &err_code, int frame_ack_num, string &frame_payload, bitset<8> &frame_trailer, bool nack_ack_lost)
+{
+    switch (event)
+       {
+
+       case PROCESSING:
+       {
+           string message = "At: " + to_string(curr_time) + ", Node: 1, Introducing channel error with code " + err_code.to_string();
+           output_file << message << endl;
+           EV << message << endl;
+           break;
+       }
+       case SENT_FRAME:
+       {
+           string message = "At: " + to_string(curr_time) + ", Node: 1 [sent] frame with " + to_string(frame_ack_num) +
+                            " and payload = " + frame_payload +
+                            " and trailer = " + frame_trailer.to_string() +
+                            " , Modified = " + to_string(err_code[3]) +
+                            " , Lost = " + ((err_code[2] == 1) ? "YES" : "NO") +
+                            " , Duplicate = " + to_string(err_code[1]) +
+                            " , Delay = " + to_string(err_code[0]);
+           output_file << message << endl;
+           EV << message << endl;
+
+           if (err_code[1] == 1)
+           {
+               message = "At: " + to_string(curr_time) + ", Node: 1 [sent] frame with " + to_string(frame_ack_num) +
+                         " and payload = " + frame_payload +
+                         " and trailer = " + frame_trailer.to_string() +
+                         " , Modified = " + to_string(err_code[3]) +
+                         " , Lost = " + ((err_code[2] == 1) ? "YES" : "NO") +
+                         " , Duplicate = " + to_string(err_code[1] + 1) +
+                         " , Delay = " + to_string(err_code[0]);
+               output_file << message << endl;
+               EV << message << endl;
+           }
+           break;
+       }
+       case SENT_ACK:
+       {
+           string message = "At: " + to_string(curr_time) + ", Node: 1 Sending ACK with number: " +
+                            to_string(frame_ack_num) + ", loss " + (nack_ack_lost ? "NO" : "YES");
+           output_file << message << endl;
+           EV << message << endl;
+           break;
+       }
+       case SENT_NACK:
+       {
+           string message = "At: " + to_string(curr_time) + ", Node: 1 Sending NACK with number: " +
+                            to_string(frame_ack_num) + ", loss " + (nack_ack_lost ? "NO" : "YES");
+           output_file << message << endl;
+           EV << message << endl;
+           break;
+       }
+       case RCVD_NACK:
+       {
+           string message = "At: " + to_string(curr_time) + ", Node: 1 [Received NACK] for seq_number: " +
+                            to_string(frame_ack_num);
+           output_file << message << endl;
+           EV << message << endl;
+           break;
+       }
+       case TIMEOUT:
+       {
+           string message = "Timeout event at time: " + to_string(curr_time) + ", Node: 1 for frame with seq_number: " +
+                            to_string(frame_ack_num);
+           output_file << message << endl;
+           EV << message << endl;
+           break;
+       }
+       }
+}
+
 string Node1::Framing(const string &data)
 {
     string framedData;
@@ -126,10 +203,10 @@ bool Node1::ErrorDetection(MyMessage_Base *msg)
 void Node1::ReadFile()
 {
     // Open the file
-    ifstream infile("Textfiles/input0.txt");
+    ifstream infile("Textfiles/input1.txt");
     if (!infile.is_open())
     {
-        cerr << "Error opening file: Textfiles/input0.txt" << endl;
+        cerr << "Error opening file: Textfiles/input1.txt" << endl;
         return;
     }
 
@@ -277,6 +354,7 @@ void Node1::message_construction(int frame_nr, int next_frame_to_send, int frame
 
 void Node1::processing_frame(int frame_nr, int next_frame_to_send, int frame_expected, double processing_time, message_collection **&buffer, vector<string> &alldata, vector<bitset<4>> &message_error_code)
 {
+    this->logEvent(PROCESSING, (float)(simTime().dbl()), message_error_codes[frame_nr], 0, emptyString, dummy, false);
     // construct message and add it to buffer
     message_construction(frame_nr, next_frame_to_send, frame_expected, buffer, alldata, message_error_code);
 
@@ -382,6 +460,10 @@ void Node1::send_message(message_collection *msg_to_be_sent)
             EV << "Total Transmission time for the duplicate message :" << total_time_duplicate << endl;
         }
     }
+    string deframed_payload = Deframing(msg_to_be_sent->msg->getM_Payload());
+    bitset<8> trailer = trailer_byte(msg_to_be_sent->msg->getM_Payload());
+
+    this->logEvent(SENT_FRAME, (float)(simTime().dbl()), msg_to_be_sent->error_code, msg_to_be_sent->msg->getSeq_Num(), deframed_payload, trailer, false);
 }
 
 void Node1::initialize()
@@ -403,6 +485,7 @@ void Node1::initialize()
     is_processing = false;
     processed_ack_or_nack = nullptr;
     last_correct_frame_received = nullptr;
+    output_file.open("Textfiles/output2.txt", ios_base::out);
 
     buffer = new message_collection *[MAX_SEQ + 1];
 
@@ -454,7 +537,9 @@ void Node1::handleMessage(cMessage *msg)
             // if the message is an data
             if (myMsg->getM_Type() == DATA && strcmp(myMsg->getM_Payload(), "") > 0)
             {
-                EV << myMsg->getM_Payload() << endl;
+                // deframe the message
+                string message = string(myMsg->getM_Payload());
+                EV << "Message Received : " << Deframing(message) << endl;
                 // check if this frame is the one expected
                 if (myMsg->getSeq_Num() == frame_expected)
                 {
@@ -469,10 +554,6 @@ void Node1::handleMessage(cMessage *msg)
                     else
                     {
                         bool error = ErrorDetection(myMsg);
-
-                        // deframe the message
-                        string message = string(myMsg->getM_Payload());
-                        EV << "Message Received : " << Deframing(message) << endl;
 
                         // process the ack or nack
                         processed_ack_or_nack = process_and_check_ack(frame_expected, error);
@@ -498,10 +579,12 @@ void Node1::handleMessage(cMessage *msg)
 
                             // send the ack
                             EV << "Ack " << processed_ack_or_nack->getACK_Num() << " sent" << endl;
+                            this->logEvent(SENT_ACK, (float)simTime().dbl(), zeroes, processed_ack_or_nack->getACK_Num(), emptyString, dummy, false);
                         }
                         else
                         {
                             EV << "Ack" << processed_ack_or_nack->getACK_Num() << " lost" << endl;
+                            this->logEvent(SENT_ACK, (float)simTime().dbl(), zeroes, processed_ack_or_nack->getACK_Num(),emptyString, dummy, true);
                         }
                     }
                     else
@@ -513,10 +596,12 @@ void Node1::handleMessage(cMessage *msg)
 
                             // send the nack
                             EV << "Nack " << processed_ack_or_nack->getNACK_Num() << " sent" << endl;
+                            this->logEvent(SENT_NACK, (float)simTime().dbl(), zeroes, processed_ack_or_nack->getACK_Num(), emptyString, dummy, false);
                         }
                         else
                         {
                             EV << "Nack" << processed_ack_or_nack->getACK_Num() << " lost" << endl;
+                            this->logEvent(SENT_NACK, (float)simTime().dbl(), zeroes, processed_ack_or_nack->getACK_Num(),emptyString, dummy, true);
                         }
                     }
                     processed_ack_or_nack = nullptr; // Clear after sending
@@ -566,9 +651,11 @@ void Node1::handleMessage(cMessage *msg)
                 EV << "ack_expected_a: " << ack_expected << endl;
                 EV << "nbuffered_a: " << nbuffered << endl;
             }
+            bitset<4> zeros;
             if (myMsg->getM_Type() == NACK)
             {
                 EV << "NACK " << myMsg->getACK_Num() << endl;
+                this->logEvent(RCVD_NACK, (float)(simTime().dbl()), zeros, myMsg->getACK_Num(), emptyString, dummy, false);
             }
             // after processing time , send the message
             if (strcmp(msg->getName(), "selfMsg") == 0)
@@ -615,6 +702,9 @@ void Node1::handleMessage(cMessage *msg)
                 // set it again to the start of the window
                 next_frame_to_send = ack_expected;
 
+
+                this->logEvent(TIMEOUT, (float)(simTime().dbl()), zeros, ack_expected,emptyString, dummy, false);
+
                 // process the frame again
                 scheduleAt(simTime() + processing_time, new MyMessage_Base("selftimeout"));
             }
@@ -627,12 +717,17 @@ void Node1::handleMessage(cMessage *msg)
                 // start the timer
                 start_timer(next_frame_to_send, time_out);
 
+                bitset<4> zeros;
+                string deframe_payload = Deframing(buffer[next_frame_to_send]->msg->getM_Payload());
+                bitset<8> trail_byte = trailer_byte(buffer[next_frame_to_send]->msg->getM_Payload());
+
                 // if time_out_buffer_count ==0
                 /// send message without errors
                 if (timeout_buffer_count == 0)
                 {
                     // send without errors
                     sendDelayed(buffer[next_frame_to_send]->msg->dup(), transmission_time, "out");
+                    this->logEvent(SENT_FRAME, (float)(simTime().dbl()) + transmission_time, zeros, next_frame_to_send, deframe_payload, trail_byte, false);
                 }
                 else
                 {

@@ -19,6 +19,11 @@
 #include <omnetpp.h>
 #include "MyMessage_m.h"
 #include <bitset>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <filesystem> // C++17 or later
+#include <algorithm>
 using namespace omnetpp;
 using namespace std;
 
@@ -36,6 +41,16 @@ enum NodeTypes
   NEITHER = 2
 };
 
+enum LogEvent
+{
+  PROCESSING = 0,
+  SENT_FRAME = 1,
+  SENT_ACK = 2,
+  SENT_NACK = 3,
+  RCVD_NACK = 4,
+  TIMEOUT = 5
+};
+
 // The message stored in the buffer
 struct message_collection
 {
@@ -51,24 +66,25 @@ class Node1 : public cSimpleModule
 {
 
 private:
-  NodeTypes nodeType;                          // to store the type of node (sender or receiver)
-  message_collection **buffer;                 // to store messages to be sent
-  vector<string> alldata;                      // to store all messages from file
-  vector<bitset<4>> message_error_codes;       // to store error codes for each message
-  int next_frame_to_send;                      // next frame to send
-  int frame_expected;                          // the frame expected to arrive
-  int nbuffered;                               // number of buffered messages
-  int MAX_SEQ;                                 // Maximum Sequence Number and Window Size
-  int time_out;                                // time out for the message
-  int ack_expected;                            // ack expected to arrive (The Lower Bound of the Window)
-  int current_frame = 0;                       // current frame taken from alldata
-  double processing_time;                      // processing time for the message
-  double transmission_time;                    // transmission time for the message
-  double duplication_time;                     // duplication time for the message
-  double error_time;                           // error time for the message
-  double loss_probability;                     // loss probability for the ack/nack message
-  bitset<4> message_error_code;                // to store error code for each message
-  string data;                                 // to read each message from file
+  NodeTypes nodeType;                    // to store the type of node (sender or receiver)
+  message_collection **buffer;           // to store messages to be sent
+  vector<string> alldata;                // to store all messages from file
+  vector<bitset<4>> message_error_codes; // to store error codes for each message
+  int next_frame_to_send;                // next frame to send
+  int frame_expected;                    // the frame expected to arrive
+  int nbuffered;                         // number of buffered messages
+  int MAX_SEQ;                           // Maximum Sequence Number and Window Size
+  int time_out;                          // time out for the message
+  int ack_expected;                      // ack expected to arrive (The Lower Bound of the Window)
+  int current_frame = 0;                 // current frame taken from alldata
+  double processing_time;                // processing time for the message
+  double transmission_time;              // transmission time for the message
+  double duplication_time;               // duplication time for the message
+  double error_time;                     // error time for the message
+  double loss_probability;               // loss probability for the ack/nack message
+  bitset<4> message_error_code;          // to store error code for each message
+  string data;                           // to read each message from file
+  ofstream output_file;
   int old_next_frame_to_send;                  // to store the old next frame to send
   int timeout_buffer_count;                    // to store the number of messages sent when timeout occurs
   bool is_processing;                          // to check if the message is being processed
@@ -92,6 +108,7 @@ public:
   void stop_timer(int seq_nr);                                                                                                                                                       // to stop timer
   void send_message(message_collection *msg_to_be_sent);                                                                                                                             // send the message based on the error codes given
   void message_manipulation(MyMessage_Base *&msg);
+  void logEvent(LogEvent event, float curr_time, bitset<4> &err_code, int frame_ack_num, string &frame_payload, bitset<8> &frame_trailer, bool nack_ack_lost);
 
 protected:
   virtual void initialize() override;

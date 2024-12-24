@@ -19,6 +19,11 @@
 #include <omnetpp.h>
 #include "MyMessage_m.h"
 #include <bitset>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <filesystem> // C++17 or later
+#include <algorithm>
 using namespace omnetpp;
 using namespace std;
 
@@ -35,6 +40,17 @@ enum NodeTypes
   RECEIVER = 1,
   NEITHER = 2
 };
+
+enum LogEvent
+{
+  PROCESSING = 0,
+  SENT_FRAME = 1,
+  SENT_ACK = 2,
+  SENT_NACK = 3,
+  RCVD_NACK = 4,
+  TIMEOUT = 5
+};
+
 
 // The message stored in the buffer
 struct message_collection
@@ -69,6 +85,7 @@ private:
   double loss_probability;                     // loss probability for the ack/nack message
   bitset<4> message_error_code;                // to store error code for each message
   string data;                                 // to read each message from file
+  ofstream output_file;                        // to write the output to the file
   int old_next_frame_to_send;                  // to store the old next frame to send
   int timeout_buffer_count;                    // to store the number of messages sent when timeout occurs
   bool is_processing;                          // to check if the message is being processed
@@ -91,7 +108,8 @@ public:
   void start_timer(int seq_nr, int time_out);                                                                                                                                        // to start the timer of a certain frame
   void stop_timer(int seq_nr);                                                                                                                                                       // to stop timer
   void send_message(message_collection *msg_to_be_sent);                                                                                                                             // send the message based on the error codes given
-  void message_manipulation(MyMessage_Base *&msg);                                                                                                                                   // to modify the message itself
+  void message_manipulation(MyMessage_Base *&msg);                                                                                                                                   // to manipulate the message based on the error codes given
+  void logEvent(LogEvent event, float curr_time, bitset<4> &err_code, int frame_ack_num, string &frame_payload, bitset<8> &frame_trailer, bool nack_ack_lost);                       // to log the events in the output file
 
 protected:
   virtual void initialize() override;

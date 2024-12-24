@@ -16,7 +16,7 @@ network Network
         double TD = default(1.0); // Transmission delay for any frame
         double ED = default(4.0); // Error delay for any frame
         double DD = default(0.1); // The channel’s duplication delay before sending the second version
-        double LP = default(10); // ACK/NACK frame loss probability, by default = 10%.
+        double LP = default(0); // ACK/NACK frame loss probability, by default = 10%.
    		@display("bgb=269,259");
     submodules:
         node0: Node0 {

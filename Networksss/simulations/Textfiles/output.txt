@@ -1,0 +1,57 @@
+At: 2.000000, Node: 1 Sending ACK with number: 0, loss YES
+At: 2.500000, Node: 1 Sending ACK with number: 1, loss YES
+At: 3.000000, Node: 1 Sending ACK with number: 2, loss YES
+At: 3.500000, Node: 1 Sending ACK with number: 3, loss YES
+At: 5.000000, Node: 1 Sending ACK with number: 4, loss YES
+At: 16.000000, Node: 1 Sending ACK with number: 0, loss YES
+At: 16.500000, Node: 1 Sending NACK with number: 1, loss YES
+At: 27.000000, Node: 1 Sending ACK with number: 1, loss YES
+At: 27.500000, Node: 1 Sending ACK with number: 2, loss YES
+At: 32.000000, Node: 1 Sending ACK with number: 3, loss YES
+At: 39.000000, Node: 1 Sending ACK with number: 4, loss YES
+At: 39.500000, Node: 1 Sending ACK with number: 0, loss YES
+At: 40.000000, Node: 1 Sending ACK with number: 1, loss YES
+At: 40.500000, Node: 1 Sending ACK with number: 2, loss YES
+At: 46.000000, Node: 1 Sending ACK with number: 3, loss YES
+At: 53.000000, Node: 1 Sending ACK with number: 4, loss YES
+At: 64.000000, Node: 1 Sending ACK with number: 0, loss YES
+t: 3.500000, Node: 0, Introducing channel error with code 0100
+At: 4.000000, Node: 0, Introducing channel error with code 1000
+At: 4.500000, Node: 0 [sent] frame with 1 and payload = bb and trailer = 00000000 , Modified = 1 , Lost = NO , Duplicate = 0 , Delay = 0
+At: 4.500000, Node: 0, Introducing channel error with code 0000
+At: 5.000000, Node: 0 [sent] frame with 2 and payload = cc and trailer = 00000000 , Modified = 0 , Lost = NO , Duplicate = 0 , Delay = 0
+At: 6.000000, Node: 0, Introducing channel error with code 0001
+At: 6.500000, Node: 0 [sent] frame with 3 and payload = dd and trailer = 00000000 , Modified = 0 , Lost = NO , Duplicate = 0 , Delay = 1
+Timeout event at time: 14.000000, Node: 0 for frame with seq_number: 0
+At: 15.500000, Node: 0 [sent] frame with 0 and payload = aa and trailer = 00000000 , Modified = 0 , Lost = NO , Duplicate = 0 , Delay = 0
+At: 15.000000, Node: 0 [sent] frame with 1 and payload = bb and trailer = 00000000 , Modified = 1 , Lost = NO , Duplicate = 0 , Delay = 0
+At: 15.500000, Node: 0 [sent] frame with 2 and payload = cc and trailer = 00000000 , Modified = 0 , Lost = NO , Duplicate = 0 , Delay = 0
+At: 16.000000, Node: 0 [sent] frame with 3 and payload = dd and trailer = 00000000 , Modified = 0 , Lost = NO , Duplicate = 0 , Delay = 1
+At: 17.000000, Node: 0, Introducing channel error with code 0100
+At: 17.500000, Node: 0 [Received NACK] for seq_number: 1
+Timeout event at time: 25.000000, Node: 0 for frame with seq_number: 1
+At: 26.500000, Node: 0 [sent] frame with 1 and payload = bb and trailer = 00000000 , Modified = 0 , Lost = NO , Duplicate = 0 , Delay = 0
+At: 26.000000, Node: 0 [sent] frame with 2 and payload = cc and trailer = 00000000 , Modified = 0 , Lost = NO , Duplicate = 0 , Delay = 0
+At: 26.500000, Node: 0 [sent] frame with 3 and payload = dd and trailer = 00000000 , Modified = 0 , Lost = NO , Duplicate = 0 , Delay = 1
+At: 28.000000, Node: 0, Introducing channel error with code 0000
+At: 28.500000, Node: 0 [sent] frame with 0 and payload = ta and trailer = 00010101 , Modified = 0 , Lost = NO , Duplicate = 0 , Delay = 0
+At: 28.500000, Node: 0, Introducing channel error with code 0000
+At: 29.000000, Node: 0 [sent] frame with 1 and payload = tb and trailer = 00010110 , Modified = 0 , Lost = NO , Duplicate = 0 , Delay = 0
+At: 33.000000, Node: 0, Introducing channel error with code 0000
+At: 33.500000, Node: 0 [sent] frame with 2 and payload = tc and trailer = 00010111 , Modified = 0 , Lost = NO , Duplicate = 0 , Delay = 0
+Timeout event at time: 37.000000, Node: 0 for frame with seq_number: 4
+At: 38.500000, Node: 0 [sent] frame with 4 and payload = ee and trailer = 00000000 , Modified = 0 , Lost = NO , Duplicate = 0 , Delay = 0
+At: 38.000000, Node: 0 [sent] frame with 0 and payload = ta and trailer = 00010101 , Modified = 0 , Lost = NO , Duplicate = 0 , Delay = 0
+At: 38.500000, Node: 0 [sent] frame with 1 and payload = tb and trailer = 00010110 , Modified = 0 , Lost = NO , Duplicate = 0 , Delay = 0
+At: 39.000000, Node: 0 [sent] frame with 2 and payload = tc and trailer = 00010111 , Modified = 0 , Lost = NO , Duplicate = 0 , Delay = 0
+At: 40.000000, Node: 0, Introducing channel error with code 0011
+At: 40.500000, Node: 0 [sent] frame with 3 and payload = fa and trailer = 00000111 , Modified = 0 , Lost = NO , Duplicate = 1 , Delay = 1
+At: 40.500000, Node: 0 [sent] frame with 3 and payload = fa and trailer = 00000111 , Modified = 0 , Lost = NO , Duplicate = 2 , Delay = 1
+At: 40.500000, Node: 0, Introducing channel error with code 1010
+At: 41.000000, Node: 0 [sent] frame with 4 and payload = fb and trailer = 00000100 , Modified = 1 , Lost = NO , Duplicate = 1 , Delay = 0
+At: 41.000000, Node: 0 [sent] frame with 4 and payload = fb and trailer = 00000100 , Modified = 1 , Lost = NO , Duplicate = 2 , Delay = 0
+At: 41.000000, Node: 0, Introducing channel error with code 1100
+Timeout event at time: 51.000000, Node: 0 for frame with seq_number: 4
+At: 52.500000, Node: 0 [sent] frame with 4 and payload = fb and trailer = 00000100 , Modified = 0 , Lost = NO , Duplicate = 0 , Delay = 0
+Timeout event at time: 62.000000, Node: 0 for frame with seq_number: 0
+At: 63.500000, Node: 0 [sent] frame with 0 and payload = fc and trailer = 00000101 , Modified = 0 , Lost = NO , Duplicate = 0 , Delay = 0

@@ -1,0 +1,17 @@
+At: 2.000000, Node: 1 Sending ACK with number: 0, loss YES
+At: 2.500000, Node: 1 Sending ACK with number: 1, loss YES
+At: 3.000000, Node: 1 Sending ACK with number: 2, loss YES
+At: 3.500000, Node: 1 Sending ACK with number: 3, loss YES
+At: 5.000000, Node: 1 Sending ACK with number: 4, loss YES
+At: 16.000000, Node: 1 Sending ACK with number: 0, loss YES
+At: 16.500000, Node: 1 Sending NACK with number: 1, loss YES
+At: 27.000000, Node: 1 Sending ACK with number: 1, loss YES
+At: 27.500000, Node: 1 Sending ACK with number: 2, loss YES
+At: 32.000000, Node: 1 Sending ACK with number: 3, loss YES
+At: 39.000000, Node: 1 Sending ACK with number: 4, loss YES
+At: 39.500000, Node: 1 Sending ACK with number: 0, loss YES
+At: 40.000000, Node: 1 Sending ACK with number: 1, loss YES
+At: 40.500000, Node: 1 Sending ACK with number: 2, loss YES
+At: 46.000000, Node: 1 Sending ACK with number: 3, loss YES
+At: 53.000000, Node: 1 Sending ACK with number: 4, loss YES
+At: 64.000000, Node: 1 Sending ACK with number: 0, loss YES
