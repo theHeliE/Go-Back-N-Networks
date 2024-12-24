@@ -51,7 +51,6 @@ enum LogEvent
   TIMEOUT = 5
 };
 
-
 // The message stored in the buffer
 struct message_collection
 {
@@ -110,6 +109,7 @@ public:
   void send_message(message_collection *msg_to_be_sent);                                                                                                                             // send the message based on the error codes given
   void message_manipulation(MyMessage_Base *&msg);                                                                                                                                   // to manipulate the message based on the error codes given
   void logEvent(LogEvent event, float curr_time, bitset<4> &err_code, int frame_ack_num, string &frame_payload, bitset<8> &frame_trailer, bool nack_ack_lost);                       // to log the events in the output file
+  void open_write_close(string filename, string data);                                                                                                                               // to write the data to the file
 
 protected:
   virtual void initialize() override;

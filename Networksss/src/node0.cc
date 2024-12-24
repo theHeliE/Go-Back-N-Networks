@@ -23,6 +23,23 @@
 Define_Module(Node0);
 using namespace std;
 
+void Node0::open_write_close(string filename, string data)
+{
+    // Open the file
+    ofstream output_file(filename, ios_base::app);
+    if (!output_file.is_open())
+    {
+        cerr << "Error opening file: " << filename << endl;
+        return;
+    }
+
+    // Write the data to the file
+    output_file << data << endl;
+
+    // Close the file
+    output_file.close();
+}
+
 void Node0::logEvent(LogEvent event, float curr_time, bitset<4> &err_code, int frame_ack_num, string &frame_payload, bitset<8> &frame_trailer, bool nack_ack_lost)
 {
     switch (event)
@@ -31,32 +48,32 @@ void Node0::logEvent(LogEvent event, float curr_time, bitset<4> &err_code, int f
     case PROCESSING:
     {
         string message = "At: " + to_string(curr_time) + ", Node: 0, Introducing channel error with code " + err_code.to_string();
-        output_file << message << endl;
+        open_write_close("Textfiles/output.txt", message);
         EV << message << endl;
         break;
     }
     case SENT_FRAME:
     {
         string message = "At: " + to_string(curr_time) + ", Node: 0 [sent] frame with " + to_string(frame_ack_num) +
-                         " and payload = " + frame_payload +
+                         " and payload = " + Framing(frame_payload) +
                          " and trailer = " + frame_trailer.to_string() +
-                         " , Modified = " + to_string(err_code[3]) +
+                         " , Modified = " + ((err_code[3] == 0) ? "-1" : "1") +
                          " , Lost = " + ((err_code[2] == 1) ? "YES" : "NO") +
                          " , Duplicate = " + to_string(err_code[1]) +
-                         " , Delay = " + to_string(err_code[0]);
-        output_file << message << endl;
+                         " , Delay = " + ((err_code[0] == 0) ? "0" : to_string(error_time));
+        open_write_close("Textfiles/output.txt", message);
         EV << message << endl;
 
         if (err_code[1] == 1)
         {
-            message = "At: " + to_string(curr_time) + ", Node: 0 [sent] frame with " + to_string(frame_ack_num) +
-                      " and payload = " + frame_payload +
+            message = "At: " + to_string(curr_time + duplication_time) + ", Node: 0 [sent] frame with " + to_string(frame_ack_num) +
+                      " and payload = " + Framing(frame_payload) +
                       " and trailer = " + frame_trailer.to_string() +
-                      " , Modified = " + to_string(err_code[3]) +
+                      " , Modified = " + +((err_code[3] == 0) ? "-1" : "1") +
                       " , Lost = " + ((err_code[2] == 1) ? "YES" : "NO") +
                       " , Duplicate = " + to_string(err_code[1] + 1) +
-                      " , Delay = " + to_string(err_code[0]);
-            output_file << message << endl;
+                      " , Delay = " + ((err_code[0] == 0) ? "0" : to_string(error_time));
+            open_write_close("Textfiles/output.txt", message);
             EV << message << endl;
         }
         break;
@@ -64,16 +81,16 @@ void Node0::logEvent(LogEvent event, float curr_time, bitset<4> &err_code, int f
     case SENT_ACK:
     {
         string message = "At: " + to_string(curr_time) + ", Node: 0 Sending ACK with number: " +
-                         to_string(frame_ack_num) + ", loss " + (nack_ack_lost ? "NO" : "YES");
-        output_file << message << endl;
+                         to_string(frame_ack_num) + ", loss " + (nack_ack_lost ? "YES" : "NO");
+        open_write_close("Textfiles/output.txt", message);
         EV << message << endl;
         break;
     }
     case SENT_NACK:
     {
         string message = "At: " + to_string(curr_time) + ", Node: 0 Sending NACK with number: " +
-                         to_string(frame_ack_num) + ", loss " + (nack_ack_lost ? "NO" : "YES");
-        output_file << message << endl;
+                         to_string(frame_ack_num) + ", loss " + (nack_ack_lost ? "YES" : "NO");
+        open_write_close("Textfiles/output.txt", message);
         EV << message << endl;
         break;
     }
@@ -81,7 +98,7 @@ void Node0::logEvent(LogEvent event, float curr_time, bitset<4> &err_code, int f
     {
         string message = "At: " + to_string(curr_time) + ", Node: 0 [Received NACK] for seq_number: " +
                          to_string(frame_ack_num);
-        output_file << message << endl;
+        open_write_close("Textfiles/output.txt", message);
         EV << message << endl;
         break;
     }
@@ -89,7 +106,7 @@ void Node0::logEvent(LogEvent event, float curr_time, bitset<4> &err_code, int f
     {
         string message = "Timeout event at time: " + to_string(curr_time) + ", Node: 0 for frame with seq_number: " +
                          to_string(frame_ack_num);
-        output_file << message << endl;
+        open_write_close("Textfiles/output.txt", message);
         EV << message << endl;
         break;
     }
@@ -265,9 +282,9 @@ MyMessage_Base *Node0::process_and_check_ack(int &frame_expected, bool error)
     }
     else
     {
-        EV << "Frame Expected_old: " << frame_expected << endl;
+        //EV << "Frame Expected_old: " << frame_expected << endl;
         frame_expected = inc(frame_expected);
-        EV << "Frame Expected_new: " << frame_expected << endl;
+        //EV << "Frame Expected_new: " << frame_expected << endl;
         msg->setM_Type(ACK);
     }
 
@@ -345,7 +362,7 @@ void Node0::message_construction(int frame_nr, int next_frame_to_send, int frame
     // set the timer of the message to Null
     buffer[next_frame_to_send]->timer = nullptr;
 
-    EV << "Message Constructed" << endl;
+    //EV << "Message Constructed" << endl;
 }
 
 void Node0::processing_frame(int frame_nr, int next_frame_to_send, int frame_expected, double processing_time, message_collection **&buffer, vector<string> &alldata, vector<bitset<4>> &message_error_code)
@@ -359,9 +376,9 @@ void Node0::processing_frame(int frame_nr, int next_frame_to_send, int frame_exp
     // Schedule the message
     scheduleAt(simTime() + processing_time, new MyMessage_Base("selfMsg"));
 
-    EV << "processing frame " << buffer[next_frame_to_send]->msg->getSeq_Num() << endl
-       << "Payload: " << buffer[next_frame_to_send]->msg->getM_Payload() << endl
-       << " " << "Trailer: " << buffer[next_frame_to_send]->msg->getM_Trailer().to_ulong() << endl;
+    //EV << "processing frame " << buffer[next_frame_to_send]->msg->getSeq_Num() << endl
+      // << "Payload: " << buffer[next_frame_to_send]->msg->getM_Payload() << endl
+       //<< " " << "Trailer: " << buffer[next_frame_to_send]->msg->getM_Trailer().to_ulong() << endl;
 }
 
 void Node0::start_timer(int seq_nr, int time_out)
@@ -389,11 +406,11 @@ void Node0::message_manipulation(MyMessage_Base *&msg)
 {
     const char *pl = msg->getM_Payload();
     string str = pl;
-    // Access the second character and modify its fourth bit
+    // Access the second character and modify its First bit
     unsigned char firstChar = str[1];
-    firstChar ^= (1 << 3);
+    firstChar ^= (1 << 1);
     str[1] = firstChar;
-    EV << " Adding Error by changing the Fourth bit of second character in the payload (the first character after the start flag)" << endl;
+    //EV << " Adding Error by changing the Fourth bit of second character in the payload (the first character after the start flag)" << endl;
     pl = str.c_str();
     msg->setM_Payload(pl);
 }
@@ -411,8 +428,7 @@ void Node0::send_message(message_collection *msg_to_be_sent)
     // if there is loss , ignore the messages
     if (msg_to_be_sent->error_code[2] == 1)
     {
-        EV << "This message will be lost with frame number : " << msg_to_be_sent->msg->getSeq_Num() << endl;
-        return;
+       /// EV << "This message will be lost with frame number : " << msg_to_be_sent->msg->getSeq_Num() << endl;
     }
 
     else
@@ -421,7 +437,7 @@ void Node0::send_message(message_collection *msg_to_be_sent)
         // check if there is modification (bit 3)
         if (msg_to_be_sent->error_code[3] == 1)
         {
-            EV << "This message will be modified at second character fourth bit" << endl;
+           // EV << "This message will be modified at second character fourth bit" << endl;
             // modify the message
 
             message_manipulation(msg);
@@ -431,14 +447,14 @@ void Node0::send_message(message_collection *msg_to_be_sent)
         if (msg_to_be_sent->error_code[0] == 1)
         {
             // if there is delay error, add delay to the sending time
-            EV << "This message will be delayed by =" << error_time << endl;
+         //   EV << "This message will be delayed by =" << error_time << endl;
             total_time += error_time;
         }
 
         // check if there is duplication delay
         if (msg_to_be_sent->error_code[1] == 1)
         {
-            EV << "This message will be duplicated with duplication time =" << duplication_time << endl;
+           // EV << "This message will be duplicated with duplication time =" << duplication_time << endl;
             // if there is duplication delay, create the duplicated Message
             duplicated_msg = msg->dup();
 
@@ -448,17 +464,17 @@ void Node0::send_message(message_collection *msg_to_be_sent)
 
         // send the message
         sendDelayed(msg, total_time, "out");
-        EV << "Total Transmission time for this message :" << total_time << endl;
+        //EV << "Total Transmission time for this message :" << total_time << endl;
 
         // if there is duplicate send it
         if (duplicated_msg)
         {
 
             sendDelayed(duplicated_msg, total_time_duplicate, "out");
-            EV << "Total Transmission time for the duplicate message :" << total_time_duplicate << endl;
+          //  EV << "Total Transmission time for the duplicate message :" << total_time_duplicate << endl;
         }
     }
-    string deframed_payload = Deframing(msg_to_be_sent->msg->getM_Payload());
+    string deframed_payload = Deframing(msg->getM_Payload());
     bitset<8> trailer = trailer_byte(msg_to_be_sent->msg->getM_Payload());
 
     this->logEvent(SENT_FRAME, (float)(simTime().dbl()), msg_to_be_sent->error_code, msg_to_be_sent->msg->getSeq_Num(), deframed_payload, trailer, false);
@@ -483,7 +499,7 @@ void Node0::initialize()
     is_processing = false;
     processed_ack_or_nack = nullptr;
     last_correct_frame_received = nullptr;
-    output_file.open("Textfiles/output1.txt", ios_base::out);
+    // output_file.open("Textfiles/output.txt", ios_base::app);
 
     buffer = new message_collection *[MAX_SEQ + 1];
 
@@ -495,14 +511,14 @@ void Node0::initialize()
         buffer[i]->timer = nullptr;           // Initialize timer to nullptr
     }
 
-    EV << "Node initialized with parameters: "
-       << "MAX_SEQ=" << MAX_SEQ << ", "
-       << "time_out=" << time_out << ", "
-       << "procesing_time=" << processing_time << ", "
-       << "transmission_time=" << transmission_time << ", "
-       << "duplication_time=" << duplication_time << ", "
-       << "error_time=" << error_time << ", "
-       << "loss_probability=" << loss_probability << endl;
+    //EV << "Node initialized with parameters: "
+      // << "MAX_SEQ=" << MAX_SEQ << ", "
+       //<< "time_out=" << time_out << ", "
+       //<< "procesing_time=" << processing_time << ", "
+       //<< "transmission_time=" << transmission_time << ", "
+       //<< "duplication_time=" << duplication_time << ", "
+       //<< "error_time=" << error_time << ", "
+       //<< "loss_probability=" << loss_probability << endl;
 }
 
 void Node0::handleMessage(cMessage *msg)
@@ -513,7 +529,7 @@ void Node0::handleMessage(cMessage *msg)
     {
         if (nodeType == SENDER)
         {
-            EV << "Coordinator message received and started processing the First frame" << endl;
+         //   EV << "Coordinator message received and started processing the First frame" << endl;
             processing_frame(current_frame, next_frame_to_send, frame_expected, processing_time, buffer, alldata, message_error_codes);
         }
     }
@@ -524,7 +540,7 @@ void Node0::handleMessage(cMessage *msg)
             // if the message is from the sender
             // check if the sent message is correct
             MyMessage_Base *myMsg = check_and_cast<MyMessage_Base *>(msg);
-            EV << "msg name: " << msg->getName() << endl;
+           // EV << "msg name: " << msg->getName() << endl;
             if (!myMsg)
             {
                 EV << "Received message is not of type MyMessage_Base" << endl;
@@ -547,7 +563,7 @@ void Node0::handleMessage(cMessage *msg)
                     {
                         // if there is an ack or nack being processed then store the last correct frame received
                         last_correct_frame_received = myMsg;
-                        EV << "correct frame received is not null : " << last_correct_frame_received->getM_Payload() << endl;
+                   ///EV << "correct frame received is not null : " << last_correct_frame_received->getM_Payload() << endl;
                     }
                     else
                     {
@@ -567,8 +583,8 @@ void Node0::handleMessage(cMessage *msg)
                 // if the last correct frame received is not null then send it
                 if (processed_ack_or_nack != nullptr)
                 {
-                    bitset<4>zeroes(0);
-                    bitset<8>dummy(0);
+                    bitset<4> zeroes(0);
+                    bitset<8> dummy(0);
                     string emptyString = "";
                     // if it is an ack then send the ack
                     if (processed_ack_or_nack->getM_Type() == ACK)
@@ -580,11 +596,11 @@ void Node0::handleMessage(cMessage *msg)
                             this->logEvent(SENT_ACK, (float)simTime().dbl(), zeroes, processed_ack_or_nack->getACK_Num(), emptyString, dummy, false);
 
                             // send the ack
-                            EV << "Ack " << processed_ack_or_nack->getACK_Num() << " sent" << endl;
+                           // EV << "Ack " << processed_ack_or_nack->getACK_Num() << " sent" << endl;
                         }
                         else
                         {
-                            EV << "Ack" << processed_ack_or_nack->getACK_Num() << " lost" << endl;
+                            //EV << "Ack" << processed_ack_or_nack->getACK_Num() << " lost" << endl;
                             this->logEvent(SENT_ACK, (float)simTime().dbl(), zeroes, processed_ack_or_nack->getACK_Num(), emptyString, dummy, true);
                         }
                     }
@@ -597,11 +613,11 @@ void Node0::handleMessage(cMessage *msg)
                             this->logEvent(SENT_NACK, (float)simTime().dbl(), zeroes, processed_ack_or_nack->getACK_Num(), emptyString, dummy, false);
 
                             // send the nack
-                            EV << "Nack " << processed_ack_or_nack->getNACK_Num() << " sent" << endl;
+                            //EV << "Nack " << processed_ack_or_nack->getNACK_Num() << " sent" << endl;
                         }
                         else
                         {
-                            EV << "Nack" << processed_ack_or_nack->getACK_Num() << " lost" << endl;
+                            //EV << "Nack" << processed_ack_or_nack->getACK_Num() << " lost" << endl;
                             this->logEvent(SENT_NACK, (float)simTime().dbl(), zeroes, processed_ack_or_nack->getACK_Num(), emptyString, dummy, true);
                         }
                     }
@@ -610,7 +626,7 @@ void Node0::handleMessage(cMessage *msg)
 
                     if (last_correct_frame_received != nullptr)
                     {
-                        EV << "Last correct frame received is not null : " << last_correct_frame_received->getM_Payload() << endl;
+                        //EV << "Last correct frame received is not null : " << last_correct_frame_received->getM_Payload() << endl;
                         // if there is a last correct frame received then process it
                         bool error = ErrorDetection(last_correct_frame_received);
                         processed_ack_or_nack = process_and_check_ack(frame_expected, error);
@@ -623,20 +639,20 @@ void Node0::handleMessage(cMessage *msg)
         {
 
             // if the message is ack or nack then check if it is ack
-            EV << "sender got a msg: " << msg->getName() << endl;
-            EV << "next_frame_to_send_b: " << next_frame_to_send << endl;
-            EV << "frame_expected_b: " << frame_expected << endl;
-            EV << "ack_expected_b: " << ack_expected << endl;
-            EV << "nbuffered_b: " << nbuffered << endl;
+            //EV << "sender got a msg: " << msg->getName() << endl;
+            //EV << "next_frame_to_send_b: " << next_frame_to_send << endl;
+            //EV << "frame_expected_b: " << frame_expected << endl;
+            //EV << "ack_expected_b: " << ack_expected << endl;
+            //EV << "nbuffered_b: " << nbuffered << endl;
             MyMessage_Base *myMsg = check_and_cast<MyMessage_Base *>(msg);
             if (myMsg)
             {
-                EV << "Message Type :" << myMsg->getM_Type() << endl;
+                //EV << "Message Type :" << myMsg->getM_Type() << endl;
             }
             // Ack Arrival
             if (myMsg->getM_Type() == ACK)
             {
-                EV << "Ack " << myMsg->getACK_Num() << "received" << endl;
+                //EV << "Ack " << myMsg->getACK_Num() << "received" << endl;
                 // if it is in between ack_expected and next_frame_to_send
                 // we inc the Window slide to it
                 while (inBetween(ack_expected, myMsg->getACK_Num(), next_frame_to_send))
@@ -647,17 +663,17 @@ void Node0::handleMessage(cMessage *msg)
                     // advance the Lower side of the window
                     ack_expected = inc(ack_expected);
                 }
-                EV << "next_frame_to_send_a: " << next_frame_to_send << endl;
-                EV << "frame_expected_a: " << frame_expected << endl;
-                EV << "ack_expected_a: " << ack_expected << endl;
-                EV << "nbuffered_a: " << nbuffered << endl;
+                //EV << "next_frame_to_send_a: " << next_frame_to_send << endl;
+                //EV << "frame_expected_a: " << frame_expected << endl;
+                //EV << "ack_expected_a: " << ack_expected << endl;
+                //EV << "nbuffered_a: " << nbuffered << endl;
             }
             string emptyString = "";
             bitset<4> zeroes(0);
             bitset<8> dummy(0);
             if (myMsg->getM_Type() == NACK)
             {
-                EV << "NACK " << myMsg->getACK_Num() << endl;
+                //EV << "NACK " << myMsg->getACK_Num() << endl;
                 this->logEvent(RCVD_NACK, (float)(simTime().dbl()), zeroes, myMsg->getACK_Num(), emptyString, dummy, false);
             }
             // after processing time , send the message
@@ -680,16 +696,16 @@ void Node0::handleMessage(cMessage *msg)
                 //  make the old next frame to send = -1
                 old_next_frame_to_send = -1;
 
-                EV << "next_frame_to_send_a: " << next_frame_to_send << endl;
-                EV << "frame_expected_a: " << frame_expected << endl;
-                EV << "ack_expected_a: " << ack_expected << endl;
-                EV << "nbuffered_a: " << nbuffered << endl;
+                //EV << "next_frame_to_send_a: " << next_frame_to_send << endl;
+                //EV << "frame_expected_a: " << frame_expected << endl;
+                //EV << "ack_expected_a: " << ack_expected << endl;
+                //EV << "nbuffered_a: " << nbuffered << endl;
             }
 
             // if timeout occurs
             if (strcmp(msg->getName(), "timer") == 0)
             {
-                EV << "time_out frame" << ack_expected;
+                //EV << "time_out frame" << ack_expected;
 
                 // set the next_frame_to_send to the start of the window
                 next_frame_to_send = ack_expected;
@@ -755,10 +771,10 @@ void Node0::handleMessage(cMessage *msg)
                     scheduleAt(simTime() + processing_time, new MyMessage_Base("selftimeout"));
                 }
 
-                EV << "next_frame_to_send_a: " << next_frame_to_send << endl;
-                EV << "frame_expected_a: " << frame_expected << endl;
-                EV << "ack_expected_a: " << ack_expected << endl;
-                EV << "nbuffered_a: " << nbuffered << endl;
+                //EV << "next_frame_to_send_a: " << next_frame_to_send << endl;
+                //EV << "frame_expected_a: " << frame_expected << endl;
+                //EV << "ack_expected_a: " << ack_expected << endl;
+                //EV << "nbuffered_a: " << nbuffered << endl;
             }
 
             // if nbuffered less than max_seq & current_frame index < alldata size

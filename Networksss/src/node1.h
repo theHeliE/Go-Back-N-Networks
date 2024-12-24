@@ -84,13 +84,14 @@ private:
   double loss_probability;               // loss probability for the ack/nack message
   bitset<4> message_error_code;          // to store error code for each message
   string data;                           // to read each message from file
-  ofstream output_file;
+  ofstream output_file1;
   int old_next_frame_to_send;                  // to store the old next frame to send
   int timeout_buffer_count;                    // to store the number of messages sent when timeout occurs
   bool is_processing;                          // to check if the message is being processed
   MyMessage_Base *processed_ack_or_nack;       // ack or nack that was processed
   vector<MyMessage_Base *> waited_messages;    // to store message waiting to be processed
   MyMessage_Base *last_correct_frame_received; // to store the last correct frame received that arrives when frame nr is the increment of frame_expected and arrives while and when the receiver is processing a ack/nack
+  void open_write_close(string filename, string data);
 
 public:
   string Framing(const string &data);       // function to frame the data
